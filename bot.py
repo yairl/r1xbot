@@ -3,12 +3,6 @@ import sqlite3
 import logging
 import threading
 
-from collections import defaultdict
-from typing import DefaultDict, Optional, Set
-
-from telegram import ForceReply, Update, MessageEntity
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackContext, ExtBot
-
 from whatsapp_api_client_python import API as WAA
 
 (wa_instance_id, wa_token) = eval(open('/home/yair/keys/greenapi.key').read()) 
@@ -20,18 +14,28 @@ openai.api_key_path = '/home/yair/keys/openai.key'
 openai_model = 'gpt-3.5-turbo'
 
 # OpenAI functions
-def generate_gpt_response(text):
+def generate_gpt_response(text_history):
     num_in_tokens = 0
-    for l in text.split('\n'):
-        num_in_tokens += len(l.split(' '))
-        if num_in_tokens > 2048:
-            return ('Your message is too long, having more than 2048 words.', None)
+    messages = []
+
+    is_user = True
+    for t in text_history:
+        for l in t.split('\n'):
+            num_in_tokens += len(l.split(' '))
+            if num_in_tokens > 2048:
+                return ('Your message or history are long, having more than 2048 words.', None)
+
+        role = "user" if is_user else "assistant"
+        messages.append({"role" : role, "content" : t})
+
+        is_user = not is_user
+
+    messages.reverse()
+
 
     r = openai.ChatCompletion.create(
           model=openai_model,
-          messages=[
-                    {"role": "user", "content": text}
-         ]
+          messages=messages
       )
 
     return (r.choices[0].message.content, r.usage.total_tokens)
@@ -51,113 +55,103 @@ class ThreadLocalConnection:
 def create_database(conn):
     conn.execute('''CREATE TABLE IF NOT EXISTS messages
                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    chat_id INTEGER,
-                    username TEXT,
-                    text TEXT)''')
+                    chat_id INTEGER NOT NULL,
+                    username TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    text TEXT,
+                    attachment_id INTEGER)''')
     conn.commit()
 
 
-def store_message(conn, chat_id, message_text, username):
-    conn.execute("INSERT INTO messages (chat_id, text, username) VALUES (?, ?, ?)",
-                 (chat_id, message_text, username))
+def store_message(conn, chat_id, username, type, text):
+    conn.execute("INSERT INTO messages (chat_id, username, type, text, attachment_id) VALUES (?, ?, ?, ?, ?)",
+                 (chat_id, username, type, text, NULL))
     conn.commit()
 
 # Bot functions
-class ChatData:
-    """Custom class for chat_data. Here we store data per message."""
+def wa_is_message_for_me(chat_id, text, body, is_quoted):
+    # For group chats, only reply if directly talked to
+    if chat_id.endswith('@c.us'):
+        return (True, text)
 
-    def __init__(self) -> None:
-        self.clicks_per_message: DefaultDict[int, int] = defaultdict(int)
+    if is_quoted:
+        if body['messageData']['quotedMessage']['participant'] != '420720604304@c.us':
+            return (False, None)
+        else:
+            return (True, text)
 
+    if not text.startswith('@420720604304'):
+        return (False, None)
 
-# The [ExtBot, dict, ChatData, dict] is for type checkers like mypy
-class CustomContext(CallbackContext[ExtBot, dict, ChatData, dict]):
-    """Custom class for context."""
+    text = text.removeprefix('@420720604304').strip()
+    return (True, text)
 
-    def __init__(self, application: Application, chat_id: int = None, user_id: int = None):
-        super().__init__(application=application, chat_id=chat_id, user_id=user_id)
-        self._message_id: Optional[int] = None
+def wa_extract_message_data(b):
+    try:
+        chat_id = b['senderData']['chatId']
+        msg_id = b['idMessage']
 
-    @property
-    def bot_user_ids(self) -> Set[int]:
-        """Custom shortcut to access a value stored in the bot_data dict"""
-        return self.bot_data.setdefault("user_ids", set())
+        md = b['messageData']
+        if 'extendedTextMessageData' in md:
+            text = md['extendedTextMessageData']['text']
+        else:
+            text = md['textMessageData']['textMessage']
 
-    @property
-    def message_clicks(self) -> Optional[int]:
-        """Access the number of clicks for the message this context object was built for."""
-        if self._message_id:
-            return self.chat_data.clicks_per_message[self._message_id]
-        return None
+        is_quoted = 'quotedMessage' in md
 
-    @message_clicks.setter
-    def message_clicks(self, value: int) -> None:
-        """Allow to change the count"""
-        if not self._message_id:
-            raise RuntimeError("There is no message associated with this context object.")
-        self.chat_data.clicks_per_message[self._message_id] = value
+        return (chat_id, msg_id, text, is_quoted)
+    except:
+        print('Error extracting message.')
+        return (None, None, None, None)
 
-    @classmethod
-    def from_update(cls, update: object, application: "Application") -> "CustomContext":
-        """Override from_update to set _message_id."""
-        # Make sure to call super()
-        context = super().from_update(update, application)
+def wa_unroll_message_history(chat_id, msg_id):
+    cr = wa_app.journals.getChatHistory(chat_id, 20)
+    fid = msg_id
 
-        if context.chat_data and isinstance(update, Update) and update.effective_message:
-            # pylint: disable=protected-access
-            context._message_id = update.effective_message.message_id
+    msg_history = []
 
-        # Remember to return the object
-        return context
+    for i in range(len(cr.data)):
+        crd = cr.data[i]
 
+        if crd['idMessage'] != fid:
+            continue
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    await update.message.reply_html(
-        rf"Hi {user.mention_html()}!",
-        reply_markup=ForceReply(selective=True),
-    )
+        if 'extendedTextMessage' in crd:
+            text = crd['extendedTextMessage']['text']
+        else:
+            text = crd['textMessage']
 
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.message
-    chat_id = message.chat_id
-    message_text = message.text
-    username = message.from_user.username
+        msg_history.append(text)
 
-    print(context.bot_data)
+        if cr.data[i]['typeMessage'] == 'quotedMessage':
+            fid = cr.data[i]['quotedMessage']['stanzaId']
+        else:
+            break
 
-    #conn = context.bot_data.get_connection()
+    print('Unrolled message history: ', msg_history)
+    return msg_history
 
-    #store_message(conn, chat_id, message_text, username)
-
-    print('Private message? ', message.chat.type == "private")
-    print('Has mentions? ', message.entities and any(entity.type == MessageEntity.MENTION for entity in message.entities))
-
-    if message.chat.type == "private" or message.entities and any(entity.type == MessageEntity.MENTION for entity in message.entities):
-        (reply_text, total_tokens) = generate_gpt_response(message_text)
-        await update.message.reply_text('Model: %s, Total tokens: %d, Cost: %f$' % (openai_model, total_tokens, total_tokens * 0.002 / 1000))
-        await update.message.reply_text(reply_text)
 
 def wa_handle_incoming_message(body):
-    chat_id = body['senderData']['chatId']
-
     print(body)
 
-    md = body['messageData']
-    if 'extendedTextMessageData' in md:
-        text = md['extendedTextMessageData']['text']
+    (chat_id, msg_id, text, is_quoted) = wa_extract_message_data(body)
+    print('CID: %s, MID: %s, is_quoted: %s' % (chat_id, msg_id, is_quoted))
+
+    if chat_id == None:
+        return
+
+    (msg_for_me, text) = wa_is_message_for_me(chat_id, text, body, is_quoted)
+
+    if text == None:
+        return
+
+    if is_quoted:
+        text_history = wa_unroll_message_history(chat_id, msg_id)
     else:
-        text = md['textMessageData']['textMessage']
+        text_history = [text]
 
-
-    # For group chats, only reply if directly talked to
-    if chat_id.endswith('g.us'):
-        if not text.startswith('@420720604304'):
-            return
-
-        text = text.removeprefix('@420720604304').strip()
-
-    (reply_text, total_tokens) = generate_gpt_response(text)
+    (reply_text, total_tokens) = generate_gpt_response(text_history)
 
     print(reply_text)
     print(total_tokens)
@@ -165,7 +159,7 @@ def wa_handle_incoming_message(body):
     if total_tokens != None:
         wa_app.sending.sendMessage(chat_id, 'Model: %s, Total tokens: %d, Cost: %f$' % (openai_model, total_tokens, total_tokens * 0.002 / 1000))
 
-    wa_app.sending.sendMessage(chat_id, reply_text)
+    wa_app.sending.sendMessage(chat_id, reply_text, msg_id)
 
 
 def wa_on_event(webhook_type, body):
@@ -202,19 +196,8 @@ def main():
     conn = ThreadLocalConnection(db_path)
     create_database(conn.get_connection())
 
-    context_types = ContextTypes(context=CustomContext)
-    application = Application.builder().token(bot_token).context_types(context_types).build()
-
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-
-    #t_thread = threading.Thread(target=telegram_run_polling, args=(application,))
-    #t_thread.start()
-
     w_thread = threading.Thread(target=wa_run_polling, args=(wa_app,))
     w_thread.start()
-
-    #t_thread.join()
     w_thread.join()
 
 if __name__ == '__main__':
