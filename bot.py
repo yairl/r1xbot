@@ -1,5 +1,4 @@
 import sys
-import sqlite3
 import logging
 import threading
 
@@ -30,6 +29,8 @@ def generate_gpt_response(text_history):
 
         is_user = not is_user
 
+    messages.append({"role" : "system", "content" : "You are a helpful expert assistant, integrated into a WhatsApp chat."})
+
     messages.reverse()
 
 
@@ -39,34 +40,6 @@ def generate_gpt_response(text_history):
       )
 
     return (r.choices[0].message.content, r.usage.total_tokens)
-
-# Database functions
-class ThreadLocalConnection:
-    def __init__(self, db_path):
-        self.db_path = db_path
-        self.local = threading.local()
-
-    def get_connection(self):
-        if not hasattr(self.local, 'connection'):
-            self.local.connection = sqlite3.connect(self.db_path)
-        return self.local.connection
-
-
-def create_database(conn):
-    conn.execute('''CREATE TABLE IF NOT EXISTS messages
-                    (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    chat_id INTEGER NOT NULL,
-                    username TEXT NOT NULL,
-                    type TEXT NOT NULL,
-                    text TEXT,
-                    attachment_id INTEGER)''')
-    conn.commit()
-
-
-def store_message(conn, chat_id, username, type, text):
-    conn.execute("INSERT INTO messages (chat_id, username, type, text, attachment_id) VALUES (?, ?, ?, ?, ?)",
-                 (chat_id, username, type, text, NULL))
-    conn.commit()
 
 # Bot functions
 def wa_is_message_for_me(chat_id, text, body, is_quoted):
@@ -131,6 +104,7 @@ def wa_unroll_message_history(chat_id, msg_id):
     print('Unrolled message history: ', msg_history)
     return msg_history
 
+handled_messages_cache = {}
 
 def wa_handle_incoming_message(body):
     print(body)
@@ -140,6 +114,12 @@ def wa_handle_incoming_message(body):
 
     if chat_id == None:
         return
+
+    msg_key = (chat_id, msg_id)
+    if msg_key in handled_messages_cache:
+        return
+
+    handled_messages_cache[msg_key] = True
 
     (msg_for_me, text) = wa_is_message_for_me(chat_id, text, body, is_quoted)
 
@@ -156,8 +136,8 @@ def wa_handle_incoming_message(body):
     print(reply_text)
     print(total_tokens)
 
-    if total_tokens != None:
-        wa_app.sending.sendMessage(chat_id, 'Model: %s, Total tokens: %d, Cost: %f$' % (openai_model, total_tokens, total_tokens * 0.002 / 1000))
+    #if total_tokens != None:
+    #    wa_app.sending.sendMessage(chat_id, 'Model: %s, Total tokens: %d, Cost: %f$' % (openai_model, total_tokens, total_tokens * 0.002 / 1000))
 
     wa_app.sending.sendMessage(chat_id, reply_text, msg_id)
 
@@ -181,20 +161,9 @@ def main():
     # Replace 'your_bot_token' with the token you received from BotFather
     bot_token = open('/home/yair/keys/telegram_r1xbot.key').read()
 
-    if len(sys.argv) < 2:
-        print("Usage: python bot.py <local|remote>")
+    if len(sys.argv) < 1:
+        print("Usage: python bot.py")
         sys.exit(1)
-
-    if sys.argv[1] == "local":
-        db_path = 'messages.db'
-    elif sys.argv[1] == "remote":
-        db_path = 'REMOTE_DATABASE_URL'  # Replace with your remote database URL
-    else:
-        print("Invalid database option. Use 'local' or 'remote'.")
-        sys.exit(1)
-
-    conn = ThreadLocalConnection(db_path)
-    create_database(conn.get_connection())
 
     w_thread = threading.Thread(target=wa_run_polling, args=(wa_app,))
     w_thread.start()
