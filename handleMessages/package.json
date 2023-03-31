@@ -1,0 +1,16 @@
+{
+  "name": "ai-query",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "node ./local-run.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rm -rf ./node_modules ; rm ../handleMessages.zip ; npm i && zip -q -r ../handleMessages.zip ./ -x ./.env"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "openai": "^3.2.1"
+  }
+}
