@@ -6,7 +6,7 @@ import threading
 
 from whatsapp_api_client_python import API as WAA
 
-(wa_instance_id, wa_token) = eval(open('/home/yair/keys/greenapi.key').read()) 
+(wa_instance_id, wa_token) = eval(open('/home/admin/keys/greenapi.key').read()) 
 wa_app = WAA.GreenApi(wa_instance_id, wa_token)
 
 r1x_number = '420720604304'
@@ -14,7 +14,7 @@ r1x_pid = r1x_number + '@c.us'
 
 # openai settings
 import openai
-openai.api_key_path = '/home/yair/keys/openai.key'
+openai.api_key_path = '/home/admin/keys/openai.key'
 openai_model = 'gpt-3.5-turbo'
 
 # OpenAI functions
@@ -165,9 +165,6 @@ def wa_run_polling(wa_app):
 
 def main():
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-    # Replace 'your_bot_token' with the token you received from BotFather
-    bot_token = open('/home/yair/keys/telegram_r1xbot.key').read()
 
     if len(sys.argv) < 1:
         print("Usage: python bot.py")
