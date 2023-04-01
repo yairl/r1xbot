@@ -29,7 +29,7 @@ def generate_gpt_response(text_history):
 
         is_user = not is_user
 
-    messages.append({"role" : "system", "content" : "You are a helpful expert assistant, Robot 1-X, integrated into a WhatsApp chat. More information about you is available at https://r1x.ai."})
+    messages.append({"role" : "system", "content" : "You are a helpful expert assistant, Robot 1-X, integrated into a WhatsApp chat. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well."})
 
     messages.reverse()
 
