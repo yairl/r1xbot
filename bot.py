@@ -106,6 +106,13 @@ def wa_unroll_message_history(chat_id, msg_id):
 
 handled_messages_cache = {}
 
+def wa_is_start_of_chat(chat_id):
+    return len(wa_app.journals.getChatHistory(chat_id, 2).data) == 2
+
+welcome_message = '''Hi, I'm Robot 1-X!
+    Feel free to ask me for information about anything you'd like.
+'''
+
 def wa_handle_incoming_message(body):
     print(body)
 
@@ -120,6 +127,10 @@ def wa_handle_incoming_message(body):
         return
 
     handled_messages_cache[msg_key] = True
+
+    if wa_is_start_of_chat(chat_id):
+        wa_app.sending.sendMessage(chat_id, welcome_message)
+
 
     (msg_for_me, text) = wa_is_message_for_me(chat_id, text, body, is_quoted)
 
