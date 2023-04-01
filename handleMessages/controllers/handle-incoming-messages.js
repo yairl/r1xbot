@@ -1,5 +1,5 @@
-const { parseEvent } = require("../services/parse-event");
-const { getChatCompletion } = require("../services/query-openai");
+const { parseEvent } = require("../services/sqs/parse-event");
+const { getChatCompletion } = require("../services/open-ai/query-openai");
 
 async function handleIncomingMessage(event) {
   try {
