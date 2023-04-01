@@ -29,7 +29,7 @@ def generate_gpt_response(text_history):
 
         is_user = not is_user
 
-    messages.append({"role" : "system", "content" : "You are a helpful expert assistant, integrated into a WhatsApp chat."})
+    messages.append({"role" : "system", "content" : "You are a helpful expert assistant, Robot 1-X, integrated into a WhatsApp chat. More information about you is available at https://r1x.ai."})
 
     messages.reverse()
 
@@ -126,12 +126,15 @@ def wa_handle_incoming_message(body):
     if text == None:
         return
 
-    if is_quoted:
-        text_history = wa_unroll_message_history(chat_id, msg_id)
-    else:
-        text_history = [text]
+    try:
+        if is_quoted:
+            text_history = wa_unroll_message_history(chat_id, msg_id)
+        else:
+            text_history = [text]
 
-    (reply_text, total_tokens) = generate_gpt_response(text_history)
+        (reply_text, total_tokens) = generate_gpt_response(text_history)
+    except:
+        return
 
     print(reply_text)
     print(total_tokens)
