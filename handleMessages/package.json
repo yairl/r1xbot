@@ -5,12 +5,20 @@
   "scripts": {
     "start": "node ./local-run.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "rm -rf ./node_modules ; rm ../handleMessages.zip ; npm i && zip -q -r ../handleMessages.zip ./ -x ./.env"
+    "build": "rm -rf ./node_modules ; rm ../handleMessages.zip ; npm i && zip -q -r ../handleMessages.zip ./ -x ./.env",
+    "db:migrate": "node ./scripts/db-migrations db:migrate",
+    "db:migrate:undo": "node ./scripts/db-migrations db:migrate:undo"
   },
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
     "dotenv": "^16.0.3",
-    "openai": "^3.2.1"
+    "openai": "^3.2.1",
+    "pg": "^8.10.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.30.0"
+  },
+  "devDependencies": {
+    "sequelize-cli": "^6.6.0"
   }
 }
