@@ -88,10 +88,10 @@ def wa_unroll_message_history(chat_id, msg_id):
 
         role = 'assistant' if crd['type'] == 'outgoing' else 'user'
 
-        for l in text.split('\n'):
-            num_tokens += len(l.split(' '))
-            if num_tokens > 2048:
-                break
+        num_tokens += int(len(text) / 4) + 1
+
+        if num_tokens > 2048:
+            break
 
         msg_history.append({"role" : role, "content" : text})
 
