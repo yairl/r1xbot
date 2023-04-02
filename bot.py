@@ -7,32 +7,19 @@ from whatsapp_api_client_python import API as WAA
 (wa_instance_id, wa_token) = eval(open('/home/yair/keys/greenapi.key').read()) 
 wa_app = WAA.GreenApi(wa_instance_id, wa_token)
 
+r1x_number = '420720604304'
+r1x_pid = r1x_number + '@c.us'
+
 # openai settings
 import openai
 openai.api_key_path = '/home/yair/keys/openai.key'
 openai_model = 'gpt-3.5-turbo'
 
 # OpenAI functions
-def generate_gpt_response(text_history):
-    num_in_tokens = 0
-    messages = []
-
-    is_user = True
-    for t in text_history:
-        for l in t.split('\n'):
-            num_in_tokens += len(l.split(' '))
-            if num_in_tokens > 2048:
-                return ('Your message or history are long, having more than 2048 words.', None)
-
-        role = "user" if is_user else "assistant"
-        messages.append({"role" : role, "content" : t})
-
-        is_user = not is_user
-
+def generate_gpt_response(messages):
     messages.append({"role" : "system", "content" : "You are a helpful expert assistant, Robot 1-X, integrated into a WhatsApp chat. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well."})
 
     messages.reverse()
-
 
     r = openai.ChatCompletion.create(
           model=openai_model,
@@ -48,15 +35,15 @@ def wa_is_message_for_me(chat_id, text, body, is_quoted):
         return (True, text)
 
     if is_quoted:
-        if body['messageData']['quotedMessage']['participant'] != '420720604304@c.us':
+        if body['messageData']['quotedMessage']['participant'] != r1x_pid:
             return (False, None)
         else:
             return (True, text)
 
-    if not text.startswith('@420720604304'):
+    if not text.startswith('@' + r1x_number):
         return (False, None)
 
-    text = text.removeprefix('@420720604304').strip()
+    text = text.removeprefix('@' + r1x_number).strip()
     return (True, text)
 
 def wa_extract_message_data(b):
@@ -79,27 +66,30 @@ def wa_extract_message_data(b):
 
 def wa_unroll_message_history(chat_id, msg_id):
     cr = wa_app.journals.getChatHistory(chat_id, 20)
-    fid = msg_id
 
     msg_history = []
+
+    num_tokens = 0
 
     for i in range(len(cr.data)):
         crd = cr.data[i]
 
-        if crd['idMessage'] != fid:
-            continue
 
         if 'extendedTextMessage' in crd:
             text = crd['extendedTextMessage']['text']
-        else:
+        elif 'textMessage' in crd:
             text = crd['textMessage']
-
-        msg_history.append(text)
-
-        if cr.data[i]['typeMessage'] == 'quotedMessage':
-            fid = cr.data[i]['quotedMessage']['stanzaId']
         else:
-            break
+            continue
+
+        role = 'assistant' if crd['type'] == 'outgoing' else 'user'
+
+        for l in text.split('\n'):
+            num_tokens += len(l.split(' '))
+            if num_tokens > 2048:
+                break
+
+        msg_history.append({"role" : role, "content" : text})
 
     print('Unrolled message history: ', msg_history)
     return msg_history
@@ -107,10 +97,10 @@ def wa_unroll_message_history(chat_id, msg_id):
 handled_messages_cache = {}
 
 def wa_is_start_of_chat(chat_id):
-    return len(wa_app.journals.getChatHistory(chat_id, 2).data) == 2
+    return len(wa_app.journals.getChatHistory(chat_id, 2).data) < 2
 
 welcome_message = '''Hi, I'm Robot 1-X!
-    Feel free to ask me for information about anything you'd like.
+Feel free to ask me for information or help with anything you'd like.
 '''
 
 def wa_handle_incoming_message(body):
@@ -138,10 +128,10 @@ def wa_handle_incoming_message(body):
         return
 
     try:
-        if is_quoted:
-            text_history = wa_unroll_message_history(chat_id, msg_id)
-        else:
-            text_history = [text]
+        text_history = wa_unroll_message_history(chat_id, msg_id)
+        if len(text_history) == 0:
+            wa_app.sending.sendMessage(chat_id, 'Your message is too long. Up to 2048 words per message as supported.')
+            return
 
         (reply_text, total_tokens) = generate_gpt_response(text_history)
     except:
@@ -150,8 +140,8 @@ def wa_handle_incoming_message(body):
     print(reply_text)
     print(total_tokens)
 
-    #if total_tokens != None:
-    #    wa_app.sending.sendMessage(chat_id, 'Model: %s, Total tokens: %d, Cost: %f$' % (openai_model, total_tokens, total_tokens * 0.002 / 1000))
+    if total_tokens != None:
+        print('Chat: %s, Model: %s, Total tokens: %d, Cost: %f$' % (chat_id, openai_model, total_tokens, total_tokens * 0.002 / 1000))
 
     wa_app.sending.sendMessage(chat_id, reply_text, msg_id)
 
