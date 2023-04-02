@@ -12,6 +12,12 @@ async function getChatCompletion(messages) {
   return completion.data.choices[0].message.content;
 }
 
+// TODO whisper
+// async function getTranscript(filePath) {
+//   const openedFile =
+//   const transcript = openai.createTranscription()
+// }
+
 module.exports = {
   getChatCompletion,
 };
