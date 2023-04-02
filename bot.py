@@ -1,3 +1,5 @@
+import datetime
+
 import sys
 import logging
 import threading
@@ -17,7 +19,9 @@ openai_model = 'gpt-3.5-turbo'
 
 # OpenAI functions
 def generate_gpt_response(messages):
-    messages.append({"role" : "system", "content" : "You are a helpful expert assistant, Robot 1-X, integrated into a WhatsApp chat. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well."})
+    today = datetime.datetime.now().strftime("%B %d, %Y")
+
+    messages.append({"role" : "system", "content" : "You are a helpful expert assistant, Robot 1-X, integrated into a WhatsApp chat. Today is %s. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well." % today})
 
     messages.reverse()
 
