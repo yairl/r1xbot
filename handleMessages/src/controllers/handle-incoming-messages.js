@@ -8,13 +8,12 @@ const { addMessageToChat } = require("../services/chats/chats-service");
 // 2. Perform request (chat completion, image generation, audio transcript).
 // 3. Send answer to chat.
 // 4. Remove message from queue.
- 
+
 async function handleIncomingMessage(event) {
   try {
     const parsedEvent = parseSqsEvent(event);
 
-    console.log(parsedEvent);
-    //const message = await addMessageToChat(eventData.messageInfo);
+    const message = await addMessageToChat(parsedEvent);
     //console.log(message.toJSON());
 
     //const chatResult = await getChatCompletion(eventData.messages);
@@ -25,58 +24,61 @@ async function handleIncomingMessage(event) {
 }
 
 function parseSqsEvent(event) {
-    const eventDataStringified = event.Records[0].body;
+  const eventDataStringified = event.Records[0].body;
 
-    parsedEvent = JSON.parse(eventDataStringified);
+  parsedEvent = JSON.parse(eventDataStringified);
 
-    switch (parsedEvent.source) {
-      case 'tg':
-        return parseTelegramMessage(parsedEvent.event);
-      case 'wa':
-        return parseWhatsappMessage(parsedEvent.event);
-    }
+  switch (parsedEvent.source) {
+    case "tg":
+      return parseTelegramMessage(parsedEvent.event);
+    case "wa":
+      return parseWhatsappMessage(parsedEvent.event);
+  }
 }
 
 function parseTelegramMessage(message) {
-    message = message.message
+  message = message.message;
 
-    const source  = 'tg';
-    const messageTimestamp = message.date;
-    const chatId = message.chat.id;
-    const senderId = message.from.id;
-    const messageId = message.message_id;
-    const kind = 'text'; 
-    const body = message.text;
+  const source = "tg";
+  const messageTimestamp = message.date;
+  const chatId = message.chat.id.toString();
+  const senderId = message.from.id.toString();
+  const messageId = message.message_id.toString();
+  const kind = "text";
+  const body = message.text;
 
-    return {
-        source,
-        messageTimestamp,
-        chatId,
-        senderId,
-        messageId,
-        kind,
-        body
-    }
+  return {
+    source,
+    messageTimestamp,
+    chatId,
+    senderId,
+    messageId,
+    kind,
+    body,
+    rawSource: message
+  };
 }
 
 function parseWhatsappMessage(message) {
-    const source  = 'wa';
-    const messageTimestamp = message.data.time;
-    const chatId = message.data.from;
-    const senderId = message.data.author == '' ? message.data.from : message.data.author;
-    const messageId = message.data.id;
-    const kind = 'text'; 
-    const body = message.data.body;
-    
-    return {
-        source,
-        messageTimestamp,
-        chatId,
-        senderId,
-        messageId,
-        kind,
-        body
-    }
+  const source = "wa";
+  const messageTimestamp = message.data.time;
+  const chatId = message.data.from;
+  const senderId =
+    message.data.author == "" ? message.data.from : message.data.author;
+  const messageId = message.data.id;
+  const kind = "text";
+  const body = message.data.body;
+
+  return {
+    source,
+    messageTimestamp,
+    chatId,
+    senderId,
+    messageId,
+    kind,
+    body,
+    rawSource: message
+  };
 }
 
 module.exports = {

@@ -29,7 +29,10 @@ module.exports = {
       kind: {
         type: Sequelize.STRING
       },
-      additionalData: {
+      body: {
+        type: Sequelize.STRING
+      },
+      rawSource: {
         type: Sequelize.JSON
       },
       createdAt: {
@@ -42,7 +45,8 @@ module.exports = {
       }
     });
     await queryInterface.addIndex("Chats", ["chatId", "messageId"], {
-      name: "index_on_whatsapp_chats_chat_id_message_id"
+      name: "index_on_whatsapp_chats_chat_id_message_id",
+      unique: true
     });
   },
   down: async (queryInterface, Sequelize) => {
