@@ -1,4 +1,4 @@
-const { Chat: chatModel } = require("../../db/models");
+const { Chat } = require("../../db/models");
 
 async function addMessageToChat(attributes) {
   const {
@@ -8,20 +8,34 @@ async function addMessageToChat(attributes) {
     senderId,
     messageId,
     kind,
-    additionalData
+    additionalData,
+    rawSource
   } = attributes;
-  console.log({ attributes });
-  const message = await chatModel.create({
+
+  const existingMessage = await Chat.findOne({
+    where: { chatId, messageId }
+  });
+  if (existingMessage !== null) {
+    // TODO options to update?
+    return existingMessage;
+  }
+  const message = await Chat.create({
     source,
     messageTimestamp,
     chatId,
     senderId,
     messageId,
     kind,
-    additionalData
+    additionalData,
+    rawSource
   });
   return message;
 }
+
+// async function getMessageHistory(chatId, messageId, options = {}) {
+//   const
+
+// }
 
 module.exports = {
   addMessageToChat

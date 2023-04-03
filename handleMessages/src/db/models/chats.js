@@ -11,7 +11,8 @@ module.exports = (sequelize, DataTypes) => {
       senderId: DataTypes.STRING,
       messageId: DataTypes.STRING,
       kind: DataTypes.STRING,
-      body: DataTypes.JSON
+      body: DataTypes.STRING,
+      rawSource: DataTypes.JSON
     },
     {}
   );
