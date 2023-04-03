@@ -1,7 +1,7 @@
 "use strict";
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("Chats", {
+    await queryInterface.createTable("Messages", {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -44,16 +44,16 @@ module.exports = {
         type: Sequelize.DATE
       }
     });
-    await queryInterface.addIndex("Chats", ["chatId", "messageId"], {
-      name: "index_on_whatsapp_chats_chat_id_message_id",
+    await queryInterface.addIndex("Messages", ["chatId", "messageId"], {
+      name: "index_on_messages_chat_id_message_id",
       unique: true
     });
   },
   down: async (queryInterface, Sequelize) => {
     await queryInterface.removeIndex(
-      "Chats",
-      "index_on_whatsapp_chats_chat_id_message_id"
+      "Messages",
+      "index_on_messages_chat_id_message_id"
     );
-    await queryInterface.dropTable("Chats");
+    await queryInterface.dropTable("Messages");
   }
 };
