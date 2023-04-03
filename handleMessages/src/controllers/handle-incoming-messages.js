@@ -1,6 +1,6 @@
 const { getChatCompletion } = require("../services/open-ai/query-openai");
 const db = require("../db/models");
-const { addMessageToChat } = require("../services/chats/chats-service");
+const { insertMessage } = require("../services/messages/messages-service");
 
 // Handle incoming message from ingress SQS queue.
 //
@@ -13,7 +13,7 @@ async function handleIncomingMessage(event) {
   try {
     const parsedEvent = parseSqsEvent(event);
 
-    const message = await addMessageToChat(parsedEvent);
+    const message = await insertMessage(parsedEvent);
     //console.log(message.toJSON());
 
     //const chatResult = await getChatCompletion(eventData.messages);
