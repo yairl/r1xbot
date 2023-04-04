@@ -12,9 +12,11 @@ async function insertMessage(attributes) {
     rawSource
   } = attributes;
 
+  // Yair: don't think this makes sense long term, probably has a way to do insert-if-new in one API call.
   const existingMessage = await Message.findOne({
     where: { chatId, messageId }
   });
+
   if (existingMessage !== null) {
     // TODO options to update?
     return existingMessage;
@@ -29,6 +31,7 @@ async function insertMessage(attributes) {
     additionalData,
     rawSource
   });
+
   return message;
 }
 
