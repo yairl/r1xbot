@@ -6,9 +6,10 @@ async function insertMessage(attributes) {
     messageTimestamp,
     chatId,
     senderId,
+    isSentByMe,
     messageId,
     kind,
-    additionalData,
+    body,
     rawSource
   } = attributes;
 
@@ -26,9 +27,10 @@ async function insertMessage(attributes) {
     messageTimestamp,
     chatId,
     senderId,
+    isSentByMe,
     messageId,
     kind,
-    additionalData,
+    body,
     rawSource
   });
 
