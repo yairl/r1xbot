@@ -8,6 +8,7 @@ async function insertMessage(attributes) {
     senderId,
     isSentByMe,
     messageId,
+    replyToMessageId,
     kind,
     body,
     rawSource
@@ -29,6 +30,7 @@ async function insertMessage(attributes) {
     senderId,
     isSentByMe,
     messageId,
+    replyToMessageId,
     kind,
     body,
     rawSource
