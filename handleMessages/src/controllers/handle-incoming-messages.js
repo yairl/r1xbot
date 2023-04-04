@@ -11,16 +11,22 @@ const { insertMessage } = require("../services/messages/messages-service");
 
 async function handleIncomingMessage(event) {
   try {
-    const parsedEvent = JSON.parse(event.Records[0].body);
+    //const parsedEvent = JSON.parse(event.Records[0].body);
+    const parsedEvent = JSON.parse(event);
 
     const messenger = require("../services/messengers/" + parsedEvent.source);
     const parsedMessage = messenger.parseMessage(parsedEvent.event);
 
-    const message = await insertMessage(parsedEvent);
-    //console.log(message.toJSON());
+    const message = await insertMessage(parsedMessage);
+
+    if (parsedMessage.senderIsMe) {
+        return ;
+    }
 
     //const chatResult = await getChatCompletion(eventData.messages);
-    //console.log(chatResult);
+    const replyMessage = 'Bender is great!';
+
+    await messenger.sendMessage( { chatId : parsedMessage.chatId, quoteId : parsedMessage.messageId, kind : 'text', body : replyMessage });
   } catch (error) {
     console.log(error.stack);
   }

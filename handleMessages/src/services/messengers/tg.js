@@ -2,7 +2,7 @@ function parseMessage(message) {
   message = message.message;
 
   const source = "tg";
-  const messageTimestamp = message.date;
+  const messageTimestamp = message.date * 1e3;
   const chatId = message.chat.id.toString();
   const senderId = message.from.id.toString();
   const senderIsMe = (message.from.id == process.env.TELEGRAM_SENDER_ID);
@@ -43,7 +43,7 @@ async function sendMessage(attributes) {
   }
 
   const response = await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, args);
-  console.log(response);
+  //console.log(response);
 }
 
 

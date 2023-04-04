@@ -1,8 +1,6 @@
 function parseMessage(message) {
-  myId = ```${process.env.R1X_NUMBER}@c.us```;
-
   const source = "wa";
-  const messageTimestamp = message.data.time;
+  const messageTimestamp = message.data.time * 1e3;
   const chatId = message.data.from;
   const senderId =
     message.data.author == "" ? message.data.from : message.data.author;
@@ -45,7 +43,7 @@ async function sendMessage(attributes) {
   }
 
   const response = await axios.post(`https://api.ultramsg.com/instance${process.env.WHATSAPP_INSTANCE}/messages/chat`, args);
-  console.log(response);
+  //console.log(response);
 }
 
 module.exports = {
