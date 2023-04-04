@@ -4,7 +4,7 @@ function parseMessage(message) {
   const chatId = message.data.fromMe ? message.data.to : message.data.from;
   const senderId =
     message.data.author == "" ? message.data.from : message.data.author;
-  const senderIsMe = message.data.fromMe;
+  const isSentByMe = message.data.fromMe;
   const messageId = message.data.id;
   const kind = "text";
   const body = message.data.body;
@@ -14,7 +14,7 @@ function parseMessage(message) {
     messageTimestamp,
     chatId,
     senderId,
-    senderIsMe,
+    isSentByMe,
     messageId,
     kind,
     body,

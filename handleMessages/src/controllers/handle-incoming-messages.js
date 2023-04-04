@@ -19,7 +19,7 @@ async function handleIncomingMessage(event) {
 
     const message = await insertMessage(parsedMessage);
 
-    if (parsedMessage.senderIsMe) {
+    if (parsedMessage.isSentByMe) {
         return ;
     }
 
