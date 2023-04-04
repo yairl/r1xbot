@@ -13,6 +13,7 @@ async function insertMessage(attributes) {
     body,
     rawSource
   } = attributes;
+  console.log({ attributes });
 
   // Yair: don't think this makes sense long term, probably has a way to do insert-if-new in one API call.
   const existingMessage = await Message.findOne({
@@ -39,11 +40,18 @@ async function insertMessage(attributes) {
   return message;
 }
 
-// async function getMessageHistory(chatId, messageId, options = {}) {
-//   const
-
-// }
+async function getMessageHistory(message, options = {}) {
+  const { limit = 20 } = options;
+  const { chatId, messageTimestamp } = message;
+  const messages = await Message.findAll({
+    where: { chatId },
+    limit,
+    order: ["messageTimestamp"]
+  });
+  return messages;
+}
 
 module.exports = {
-  insertMessage
+  insertMessage,
+  getMessageHistory
 };
