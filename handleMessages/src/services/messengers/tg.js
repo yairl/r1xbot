@@ -7,7 +7,7 @@ function parseMessage(message) {
   const messageTimestamp = message.date * 1e3;
   const chatId = message.chat.id.toString();
   const senderId = message.from.id.toString();
-  const isSentByMe = (message.from.id == process.env.TELEGRAM_SENDER_ID);
+  const isSentByMe = message.from.id == process.env.TELEGRAM_SENDER_ID;
   const messageId = message.message_id.toString();
   const replyToMessageId = 'reply_to_message' in message ? message.reply_to_message.message_id : undefined;
   const kind = "text";
@@ -28,39 +28,35 @@ function parseMessage(message) {
 }
 
 async function sendMessage(attributes) {
-  const {
-    chatId,
-    quoteId,
-    kind,
-    body
-  } = attributes;
+  const { chatId, quoteId, kind, body } = attributes;
 
-  if (kind != 'text') {
-    return ;
+  if (kind != "text") {
+    return;
   }
 
-  const axios = require('axios');
+  const axios = require("axios");
 
-  var args = { chat_id : chatId, text : body };
+  var args = { chat_id: chatId, text: body };
   if (quoteId) {
-      args.reply_to_message_id = quoteId;
+    args.reply_to_message_id = quoteId;
   }
 
-  const response = await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, args);
+  const response = await axios.post(
+    `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
+    args
+  );
   console.log(response);
 
   if (response.data.ok) {
-    message = { message : response.data.result };
+    message = { message: response.data.result };
     parsedMessage = parseMessage(message);
-
+    console.log({ parsedMessage });
     await insertMessage(parsedMessage);
-    console.log('Sent message inserted successfully: ', parsedMessage);
+    console.log("Sent message inserted successfully: ", parsedMessage);
   }
 }
 
-
 module.exports = {
-    parseMessage,
-    sendMessage
+  parseMessage,
+  sendMessage
 };
-

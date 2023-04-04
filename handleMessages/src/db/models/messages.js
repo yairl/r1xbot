@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
       messageTimestamp: DataTypes.DATE,
       chatId: DataTypes.STRING,
       senderId: DataTypes.STRING,
-      isSentByMe : DataTypes.BOOLEAN,
+      isSentByMe: DataTypes.BOOLEAN,
       messageId: DataTypes.STRING,
       replyToMessageId: DataTypes.STRING,
       kind: DataTypes.STRING,
