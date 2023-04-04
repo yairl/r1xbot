@@ -1,7 +1,7 @@
 function parseMessage(message) {
   const source = "wa";
   const messageTimestamp = message.data.time * 1e3;
-  const chatId = message.data.from;
+  const chatId = message.data.fromMe ? message.data.to : message.data.from;
   const senderId =
     message.data.author == "" ? message.data.from : message.data.author;
   const senderIsMe = message.data.fromMe;
