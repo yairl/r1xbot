@@ -6,6 +6,7 @@ function parseMessage(message) {
     message.data.author == "" ? message.data.from : message.data.author;
   const isSentByMe = message.data.fromMe;
   const messageId = message.data.id;
+  const replyToMessageId = message.data.quotedMsg.id;
   const kind = "text";
   const body = message.data.body;
 
@@ -16,6 +17,7 @@ function parseMessage(message) {
     senderId,
     isSentByMe,
     messageId,
+    replyToMessageId,
     kind,
     body,
     rawSource: message
