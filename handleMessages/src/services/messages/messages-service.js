@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const { Message } = require("../../db/models");
 
 async function insertMessage(ctx, attributes) {
@@ -47,11 +48,11 @@ async function getMessageHistory(ctx, message, options = {}) {
   const { limit = 20 } = options;
   const { chatId, messageTimestamp } = message;
   const messages = await Message.findAll({
-    where: { chatId },
+    where: { chatId, messageTimestamp: { [Op.lte]: messageTimestamp } },
     limit,
-    order: ["messageTimestamp"]
+    order: [["messageTimestamp", "DESC"]]
   });
-  return messages;
+  return messages.reverse();
 }
 
 module.exports = {
