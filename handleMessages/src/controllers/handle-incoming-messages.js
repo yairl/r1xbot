@@ -9,34 +9,38 @@ const messengers = require("../services/messengers");
 // Handle incoming message from ingress SQS queue.
 //
 // 1. Insert message to DB.
-// 2. Perform request (chat completion, image generation, audio transcript).
-// 3. Send answer to chat.
-// 4. Remove message from queue.
+// 2. Generate reply (chat completion, image generation, audio transcript).
+// 3. Send reply to user.
 
-async function handleIncomingMessage(event) {
+async function handleIncomingMessage(ctx, event) {
   try {
+    // 1. Parse message and insert to database
     const parsedEvent = JSON.parse(event);
     const messenger = messengers[parsedEvent.source];
     const parsedMessage = messenger.parseMessage(parsedEvent.event);
 
-    const message = await insertMessage(parsedMessage);
+    const message = await insertMessage(ctx, parsedMessage);
 
+    // If this is a callback notifying us of a message we sent, we're done processing and can exit.
     if (parsedMessage.isSentByMe) {
       return;
     }
 
-    const messageHistory = await getMessageHistory(message);
-    const replyMessage = await getChatCompletion(messageHistory);
-    console.log({ replyMessage });
+    // 2. Generate reply
+    const messageHistory = await getMessageHistory(ctx, message);
+    const replyMessage = await getChatCompletion(ctx, messageHistory);
+    console.log(`[${ctx}] `, {replyMessage});
 
-    await messenger.sendMessage({
+    // 3. Send reply to user
+    await messenger.sendMessage(ctx, {
       chatId: parsedMessage.chatId,
       quoteId: parsedMessage.messageId,
       kind: "text",
       body: replyMessage
     });
   } catch (error) {
-    console.log(error.stack);
+    console.log(`[${ctx}] `, error.stack);
+    throw new Error(`[{ctx}] Message processing failed.`);
   }
 }
 

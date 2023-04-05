@@ -1,5 +1,7 @@
 require("dotenv").config();
 
+var ctx = { msgCount : 0 };
+
 const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
 
@@ -19,25 +21,26 @@ sqs.receiveMessage(receiveParams, messageHandler);
 
 async function messageHandler(err, data) {
   if (err) {
-    console.log('Error receiving message:', err);
+    console.log(`Error receiving message:`, err);
   } else if (data.Messages) {
     console.log('Received', data.Messages.length, 'messages:');
     data.Messages.forEach((message) => {
-//      console.log('Message ID:', message.MessageId);
-//      console.log('Message Body:', message.Body);
-//      console.log('Message Attributes:', message.MessageAttributes);
-//      console.log('Message Receipt Handle:', message.ReceiptHandle);
-      handler(message.Body);
+      currMsgCount = ++ctx.msgCount;
+//      console.log(`[${currMsgCount}] Message ID:`, message.MessageId);
+//      console.log(`[${currMsgCount}] Message Body:`, message.Body);
+//      console.log(`[${currMsgCount}] Message Attributes:`, message.MessageAttributes);
+//      console.log(`[${currMsgCount}] Message Receipt Handle:`, message.ReceiptHandle);
+      handler(currMsgCount, message.Body);
 
       const deleteParams = {
         QueueUrl: queueUrl,
         ReceiptHandle : message.ReceiptHandle
       };
 
-      console.log(deleteParams);
+      console.log(`[${currMsgCount}] Delete parameters: `, deleteParams);
  
-      const result = sqs.deleteMessage(deleteParams, (err, data) => {console.log(err); console.log(data);});
-      console.log(result);
+      const result = sqs.deleteMessage(deleteParams, (err, data) => {console.log(`[${currMsgCount}] ${err}`); console.log(`[${currMsgCount}] ${data}`);});
+      console.log(`[${currMsgCount}] Delete result: `, result);
     });
   }
 }
