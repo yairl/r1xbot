@@ -36,7 +36,6 @@ async function handleIncomingMessage(ctx, event) {
     // 3. Send reply to user
     await messenger.sendMessage(ctx, {
       chatId: parsedMessage.chatId,
-      quoteId: parsedMessage.messageId,
       kind: "text",
       body: replyMessage
     });
