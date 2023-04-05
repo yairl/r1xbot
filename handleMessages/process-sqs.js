@@ -9,10 +9,10 @@ const app = Consumer.create({
   queueUrl: process.env.SQS_QUEUE_URL,
   handleMessage: async (message) => {
     currMsgCount = ++ctx.msgCount;
-    console.log(`[${ctx}] `, "Starting to handle message");
+    console.log(`[${currMsgCount}] `, "Starting to handle message");
 
     const result = await handler(currMsgCount, message.Body);
-    console.log(`[${ctx}] `, "Finished handling message");
+    console.log(`[${currMsgCount}] `, "Finished handling message");
   },
   sqs: new SQSClient({
     region: "eu-central-1"
