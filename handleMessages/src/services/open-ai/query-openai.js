@@ -22,15 +22,20 @@ async function getChatCompletion(ctx, messages) {
     }
   ];
 
+  let numTokens = 0;
+
   for (message of messages) {
     if (message.body == null) {
       continue;
     }
- 
+    numTokens += Math.floor(message.body.length / 4) + 1;
+    if (numTokens > 1200) {
+      break;
+    }
     parsedMessages.push(convertMessageToChatFormat(message));
   }
 
-  console.log(`[${ctx}] getChatCompletion messages: `, parsedMessages); 
+  console.log(`[${ctx}] getChatCompletion messages: `, parsedMessages);
 
   const completion = await openai.createChatCompletion({
     model: process.env.OPENAI_MODEL,
