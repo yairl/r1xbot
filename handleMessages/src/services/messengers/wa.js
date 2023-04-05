@@ -26,7 +26,7 @@ function parseMessage(message) {
   };
 }
 
-async function sendMessage(attributes) {
+async function sendMessage(ctx, attributes) {
   const {
     chatId,
     quoteId,
@@ -47,7 +47,7 @@ async function sendMessage(attributes) {
   }
 
   const response = await axios.post(`https://api.ultramsg.com/instance${process.env.WHATSAPP_INSTANCE}/messages/chat`, args);
-  //console.log(response);
+  console.log(`[${ctx}] `, response);
 }
 
 module.exports = {

@@ -12,7 +12,7 @@ function convertMessageToChatFormat(message) {
   return convertedMessage;
 }
 
-async function getChatCompletion(messages) {
+async function getChatCompletion(ctx, messages) {
   const parsedMessages = [
     {
       role: "system",

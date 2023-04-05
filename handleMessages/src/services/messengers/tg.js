@@ -29,7 +29,7 @@ function parseMessage(message) {
   };
 }
 
-async function sendMessage(attributes) {
+async function sendMessage(ctx, attributes) {
   const { chatId, quoteId, kind, body } = attributes;
 
   if (kind != "text") {
@@ -47,14 +47,15 @@ async function sendMessage(attributes) {
     `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
     args
   );
-  console.log(response);
+  console.log(`[${ctx}] `, response);
 
   if (response.data.ok) {
     message = { message: response.data.result };
     parsedMessage = parseMessage(message);
-    console.log({ parsedMessage });
+    console.log(`[${ctx}] `, { parsedMessage });
+
     await insertMessage(parsedMessage);
-    console.log("Sent message inserted successfully: ", parsedMessage);
+    console.log(`[${ctx}] Sent message inserted successfully: `, parsedMessage);
   }
 }
 

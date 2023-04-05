@@ -1,6 +1,6 @@
 const { Message } = require("../../db/models");
 
-async function insertMessage(attributes) {
+async function insertMessage(ctx, attributes) {
   const {
     source,
     messageTimestamp,
@@ -14,7 +14,7 @@ async function insertMessage(attributes) {
     body,
     rawSource
   } = attributes;
-  //console.log({ attributes });
+  //console.log(`[${ctx}] insertMessage attributes: `, { attributes });
 
   // Yair: don't think this makes sense long term, probably has a way to do insert-if-new in one API call.
   const existingMessage = await Message.findOne({
@@ -25,8 +25,6 @@ async function insertMessage(attributes) {
     // TODO options to update?
     return existingMessage;
   }
-
-  //console.log(attributes);
 
   const message = await Message.create({
     source,
@@ -42,12 +40,10 @@ async function insertMessage(attributes) {
     rawSource
   });
 
-  //console.log(message);
-
   return message;
 }
 
-async function getMessageHistory(message, options = {}) {
+async function getMessageHistory(ctx, message, options = {}) {
   const { limit = 20 } = options;
   const { chatId, messageTimestamp } = message;
   const messages = await Message.findAll({
