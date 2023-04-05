@@ -54,7 +54,7 @@ async function sendMessage(ctx, attributes) {
     parsedMessage = parseMessage(message);
     console.log(`[${ctx}] `, { parsedMessage });
 
-    await insertMessage(parsedMessage);
+    await insertMessage(ctx, parsedMessage);
     console.log(`[${ctx}] Sent message inserted successfully: `, parsedMessage);
   }
 }
