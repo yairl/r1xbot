@@ -22,12 +22,14 @@ async function handleIncomingMessage(ctx, event) {
     const message = await insertMessage(ctx, parsedMessage);
 
     // If this is a callback notifying us of a message we sent, we're done processing and can exit.
-    if (parsedMessage.isSentByMe) {
+    if (message.isSentByMe || message.body == null) {
       return;
     }
 
     // 2. Generate reply
     const messageHistory = await getMessageHistory(ctx, message);
+    console.log(`[${ctx}] message history pulled.`);
+
     const replyMessage = await getChatCompletion(ctx, messageHistory);
     console.log(`[${ctx}] `, { replyMessage });
 
@@ -41,7 +43,7 @@ async function handleIncomingMessage(ctx, event) {
     return `replied: ${replyMessage}`;
   } catch (error) {
     console.log(`[${ctx}] `, error.stack);
-    throw new Error(`[{ctx}] Message processing failed.`);
+    throw new Error(`[${ctx}] Message processing failed.`);
   }
 }
 
