@@ -5,6 +5,7 @@ function parseMessage(message) {
 
   const source = "tg";
   const messageTimestamp = message.date * 1e3;
+  const chatType = message.chat.type; 
   const chatId = message.chat.id.toString();
   const senderId = message.from.id.toString();
   const isSentByMe = message.from.id == process.env.TELEGRAM_SENDER_ID;
@@ -16,6 +17,7 @@ function parseMessage(message) {
   return {
     source,
     messageTimestamp,
+    chatType,
     chatId,
     senderId,
     isSentByMe,

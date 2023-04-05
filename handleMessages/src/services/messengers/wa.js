@@ -2,6 +2,7 @@ function parseMessage(message) {
   const source = "wa";
   const messageTimestamp = message.data.time * 1e3;
   const chatId = message.data.fromMe ? message.data.to : message.data.from;
+  const chatType = chatId.endsWith('@g.us') ? 'group' : 'private';
   const senderId =
     message.data.author == "" ? message.data.from : message.data.author;
   const isSentByMe = message.data.fromMe;
@@ -13,6 +14,7 @@ function parseMessage(message) {
   return {
     source,
     messageTimestamp,
+    chatType,
     chatId,
     senderId,
     isSentByMe,
