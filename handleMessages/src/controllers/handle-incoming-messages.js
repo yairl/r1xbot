@@ -29,7 +29,7 @@ async function handleIncomingMessage(ctx, event) {
     // 2. Generate reply
     const messageHistory = await getMessageHistory(ctx, message);
     const replyMessage = await getChatCompletion(ctx, messageHistory);
-    console.log(`[${ctx}] `, {replyMessage});
+    console.log(`[${ctx}] `, { replyMessage });
 
     // 3. Send reply to user
     await messenger.sendMessage(ctx, {
@@ -38,6 +38,7 @@ async function handleIncomingMessage(ctx, event) {
       kind: "text",
       body: replyMessage
     });
+    return `replied: ${replyMessage}`;
   } catch (error) {
     console.log(`[${ctx}] `, error.stack);
     throw new Error(`[{ctx}] Message processing failed.`);
