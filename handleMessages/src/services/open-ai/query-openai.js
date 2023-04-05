@@ -13,27 +13,33 @@ function convertMessageToChatFormat(message) {
 }
 
 async function getChatCompletion(ctx, messages) {
-  const parsedMessages = [
-    {
+  const systemMessage = {
       role: "system",
       content: `You are a helpful expert assistant, Robot 1-X, integrated into a Telegram chat. Today's date is ${new Date(
         Date.now()
       ).toDateString()}. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well.`
-    }
-  ];
+  };
 
   let numTokens = 0;
+
+  const parsedMessages = [];
+  messages.reverse();
 
   for (message of messages) {
     if (message.body == null) {
       continue;
     }
+
     numTokens += Math.floor(message.body.length / 4) + 1;
     if (numTokens > 1200) {
       break;
     }
+
     parsedMessages.push(convertMessageToChatFormat(message));
   }
+
+  parsedMessages.push(systemMessage);
+  parsedMessages.reverse();
 
   console.log(`[${ctx}] getChatCompletion messages: `, parsedMessages);
 
