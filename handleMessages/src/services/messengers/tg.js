@@ -47,7 +47,7 @@ async function sendMessage(ctx, attributes) {
     `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
     args
   );
-  console.log(`[${ctx}] `, response);
+  //console.log(`[${ctx}] `, response);
 
   if (response.data.ok) {
     message = { message: response.data.result };
