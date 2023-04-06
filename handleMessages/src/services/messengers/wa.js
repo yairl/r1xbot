@@ -50,8 +50,17 @@ async function sendMessage(ctx, attributes) {
   console.log(`[${ctx}] `, response);
 }
 
+function isMessageForMe(msg) {
+  if (msg.chatType == 'private') {
+    return true;
+  }
+
+  return false;
+}
+
 module.exports = {
   parseMessage,
-  sendMessage
+  sendMessage,
+  isMessageForMe
 };
 

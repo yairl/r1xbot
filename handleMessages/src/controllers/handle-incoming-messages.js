@@ -26,6 +26,11 @@ async function handleIncomingMessage(ctx, event) {
       return;
     }
 
+    // If this is a group chat, only reply if it's direct at us.
+    if (! messenger.isMessageForMe(message)) {
+      return;
+    }
+
     // 2. Generate reply
     const messageHistory = await getMessageHistory(ctx, message);
     console.log(`[${ctx}] message history pulled.`);

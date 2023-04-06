@@ -59,7 +59,20 @@ async function sendMessage(ctx, attributes) {
   }
 }
 
+function isMessageForMe(msg) {
+  if (msg.chatType == 'private') {
+    return true;
+  }
+
+  if (msg.body.startsWith(`@${process.env.TELEGRAM_BOT_NAME}`)) {
+    return true;
+  }
+
+  return false;
+}
+
 module.exports = {
   parseMessage,
-  sendMessage
+  sendMessage,
+  isMessageForMe
 };
