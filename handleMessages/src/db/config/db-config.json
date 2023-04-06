@@ -1,6 +1,6 @@
 {
   "development": {
-    "use_env_variable": "DB_CONNECTION_STRING_DEVELOPMENT",
+    "use_env_variable": "DB_CONNECTION_STRING",
     "dialect": "postgres",
     "dialectOptions": {
       "ssl": {
@@ -10,7 +10,7 @@
     }
   },
   "staging": {
-    "use_env_variable": "DB_CONNECTION_STRING_STAGING",
+    "use_env_variable": "DB_CONNECTION_STRING",
     "dialect": "postgres",
     "dialectOptions": {
       "ssl": {

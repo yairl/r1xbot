@@ -1,4 +1,8 @@
-require("dotenv").config();
+const STAGE = process.env.R1X_STAGE || "dev";
+
+console.log(`Running R1X bot in ${STAGE} mode...`);
+
+require("dotenv").config( { path : './.env.' + STAGE } );
 const { Consumer } = require("sqs-consumer");
 const { SQSClient } = require("@aws-sdk/client-sqs");
 const { handler } = require("./index");
