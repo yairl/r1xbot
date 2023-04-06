@@ -50,7 +50,7 @@ async function getMessageHistory(ctx, message, options = {}) {
   const messages = await Message.findAll({
     where: { chatId, messageTimestamp: { [Op.lte]: messageTimestamp } },
     limit,
-    order: [["messageId", "DESC"]]
+    order: [["createdAt", "DESC"]]
   });
   return messages.reverse();
 }
