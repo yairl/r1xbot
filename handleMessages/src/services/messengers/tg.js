@@ -1,3 +1,4 @@
+const logger = require("../../utils/logger");
 const { insertMessage } = require("../messages/messages-service");
 
 function parseMessage(message) {
@@ -5,12 +6,15 @@ function parseMessage(message) {
 
   const source = "tg";
   const messageTimestamp = message.date * 1e3;
-  const chatType = message.chat.type; 
+  const chatType = message.chat.type;
   const chatId = message.chat.id.toString();
   const senderId = message.from.id.toString();
   const isSentByMe = message.from.id == process.env.TELEGRAM_SENDER_ID;
   const messageId = message.message_id.toString();
-  const replyToMessageId = 'reply_to_message' in message ? message.reply_to_message.message_id : undefined;
+  const replyToMessageId =
+    "reply_to_message" in message
+      ? message.reply_to_message.message_id
+      : undefined;
   const kind = "text";
   const body = message.text;
 
@@ -47,20 +51,20 @@ async function sendMessage(ctx, attributes) {
     `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
     args
   );
-  //console.log(`[${ctx}] `, response);
+  //logger.info(`[${ctx}] `, response);
 
   if (response.data.ok) {
     message = { message: response.data.result };
     parsedMessage = parseMessage(message);
-    console.log(`[${ctx}] `, { parsedMessage });
+    logger.info(`[${ctx}] `, { parsedMessage });
 
     await insertMessage(ctx, parsedMessage);
-    console.log(`[${ctx}] Sent message inserted successfully: `, parsedMessage);
+    logger.info(`[${ctx}] Sent message inserted successfully: `, parsedMessage);
   }
 }
 
 function isMessageForMe(msg) {
-  if (msg.chatType == 'private') {
+  if (msg.chatType == "private") {
     return true;
   }
 

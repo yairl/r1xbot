@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const { getChatCompletion } = require("../services/open-ai/query-openai");
 const db = require("../db/models");
 const {
@@ -28,13 +29,13 @@ async function handleIncomingMessage(ctx, event) {
     }
 
     // If this is a group chat, only reply if it's direct at us.
-    if (! messenger.isMessageForMe(message)) {
+    if (!messenger.isMessageForMe(message)) {
       return;
     }
 
     // 2. Get chat history, and send an intro message.
     const messageHistory = await getMessageHistory(ctx, message);
-    console.log(`[${ctx}] message history pulled.`);
+    logger.info(`[${ctx}] message history pulled.`);
 
     if (messageHistory.length <= 1) {
       await sendIntroMessage(ctx, messenger, parsedMessage);
@@ -43,7 +44,7 @@ async function handleIncomingMessage(ctx, event) {
 
     // 3. Generate reply
     const replyMessage = await getChatCompletion(ctx, messageHistory);
-    console.log(`[${ctx}] `, { replyMessage });
+    logger.info(`[${ctx}] `, { replyMessage });
 
     // 4. Send reply to user
     await messenger.sendMessage(ctx, {
@@ -53,7 +54,7 @@ async function handleIncomingMessage(ctx, event) {
     });
     return `replied: ${replyMessage}`;
   } catch (error) {
-    console.log(`[${ctx}] `, error.stack);
+    logger.info(`[${ctx}] `, error.stack);
     throw new Error(`[${ctx}] Message processing failed.`);
   }
 }

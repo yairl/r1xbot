@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("./src/utils/init-env-vars").config();
 
 const { msgs } = require("./samples/inputs.js");
 

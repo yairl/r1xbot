@@ -1,6 +1,6 @@
 (async () => {
   try {
-    require("dotenv").config();
+    require("../src/utils/init-env-vars").config();
     const sequelizeCommand = process.argv[2] || "db:migrate";
     const { exec } = require("child_process");
 
@@ -31,7 +31,7 @@
             migrate.emit("SIGINT");
           }
         });
-      }),
+      })
     ]);
   } catch (err) {
     process.exit(err.code);

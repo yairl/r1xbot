@@ -1,8 +1,6 @@
-const STAGE = process.env.R1X_STAGE || "dev";
+const logger = require("./src/utils/logger");
+require("./src/utils/init-env-vars").config();
 
-console.log(`Running R1X bot in ${STAGE} mode...`);
-
-require("dotenv").config( { path : './.env.' + STAGE } );
 const { Consumer } = require("sqs-consumer");
 const { SQSClient } = require("@aws-sdk/client-sqs");
 const { handler } = require("./index");
@@ -13,14 +11,15 @@ const numOfConsumers = 10;
 const consumers = [];
 
 for (let i = 0; i < numOfConsumers; i++) {
+  logger.info(`starting listener #${i + 1} / ${numOfConsumers}...`);
   const app = Consumer.create({
     queueUrl: process.env.SQS_QUEUE_URL,
     handleMessage: async (message) => {
       currMsgCount = ++ctx.msgCount;
-      console.log(`[${currMsgCount}] `, "Starting to handle message");
+      logger.info(`[${currMsgCount}] `, "Starting to handle message");
 
       const result = await handler(currMsgCount, message.Body);
-      console.log(`[${currMsgCount}] `, "Finished handling message");
+      logger.info(`[${currMsgCount}] `, "Finished handling message");
     },
     sqs: new SQSClient({
       region: "eu-central-1"
@@ -41,4 +40,5 @@ for (let i = 0; i < numOfConsumers; i++) {
 
   app.start();
   consumers.push(app);
+  logger.info("done");
 }
