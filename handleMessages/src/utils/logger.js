@@ -6,7 +6,7 @@ const maxLogFiles = process.env.MAX_LOG_FILES || "50";
 
 var transport = new winston.transports.DailyRotateFile({
   level: "info",
-  filename: "/tmp/r1x/logs/r1x-%DATE%.log",
+  filename: "./logs/r1x-%DATE%.log",
   datePattern: "YYYY-MM-DD-HH",
   zippedArchive: true,
   maxSize: maxFileSize,
