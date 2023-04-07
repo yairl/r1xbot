@@ -38,13 +38,15 @@ async function handleIncomingMessage(ctx, event) {
     logger.info(`[${ctx}] message history pulled.`);
 
     if (messageHistory.length <= 1) {
+      logger.info(`[${ctx}] sending intro message.`);
       await sendIntroMessage(ctx, messenger, parsedMessage);
       return ;
     }  
 
     // 3. Generate reply
+    logger.info(`[${ctx}] calling getChatCompletion...`);
     const replyMessage = await getChatCompletion(ctx, messageHistory);
-    logger.info(`[${ctx}] `, { replyMessage });
+    logger.info(`[${ctx}] getChatCompletion done, result is `, { replyMessage });
 
     // 4. Send reply to user
     await messenger.sendMessage(ctx, {
