@@ -9,8 +9,9 @@ const messengers = require("../services/messengers");
 // Handle incoming message from ingress SQS queue.
 //
 // 1. Insert message to DB.
-// 2. Generate reply (chat completion, image generation, audio transcript).
-// 3. Send reply to user.
+// 2. Get chat history; send an intro message if this is a new chat.
+// 3. Generate reply (chat completion, image generation, audio transcript).
+// 4. Send reply to user.
 
 async function handleIncomingMessage(ctx, event) {
   try {
@@ -31,14 +32,20 @@ async function handleIncomingMessage(ctx, event) {
       return;
     }
 
-    // 2. Generate reply
+    // 2. Get chat history, and send an intro message.
     const messageHistory = await getMessageHistory(ctx, message);
     console.log(`[${ctx}] message history pulled.`);
 
+    if (messageHistory.length <= 1) {
+      await sendIntroMessage(ctx, messenger, parsedMessage);
+      return ;
+    }  
+
+    // 3. Generate reply
     const replyMessage = await getChatCompletion(ctx, messageHistory);
     console.log(`[${ctx}] `, { replyMessage });
 
-    // 3. Send reply to user
+    // 4. Send reply to user
     await messenger.sendMessage(ctx, {
       chatId: parsedMessage.chatId,
       kind: "text",
@@ -49,6 +56,36 @@ async function handleIncomingMessage(ctx, event) {
     console.log(`[${ctx}] `, error.stack);
     throw new Error(`[${ctx}] Message processing failed.`);
   }
+}
+
+async function sendIntroMessage(ctx, messenger, parsedMessage) {
+  introMessageLegal = `Robot 1-X at your service!
+
+First, be aware that while I always do my best to help, I am not a professional doctor, psychologist or banker.
+Always check my suggestions with a professional.
+
+If you're under 13, ask your parents for permission before you continue talking to me!
+
+And of course, read my privacy policy at https://r1x.ai/privacy.`
+
+  introMessageOverview = `Phew, now that that's out of the way, here are some things you can ask me for:
+
+- Write a bedtime story about Abigail and Jonathan, two superheroes who live next to a river.
+- Plan a 14-day road trip from Milan to Minsk. Include detailed suggestions about where to spend each day.
+- Rewrite the following text with spell-checking and punctuation: pleez send me all the docooments that is need for tomorrow flight im waiting for dem.
+- Please summarize the following text: <copy some text/email here>.`
+
+  await messenger.sendMessage(ctx, {
+    chatId: parsedMessage.chatId,
+    kind: "text",
+    body: introMessageLegal
+  });
+
+  await messenger.sendMessage(ctx, {
+    chatId: parsedMessage.chatId,
+    kind: "text",
+    body: introMessageOverview
+  });
 }
 
 module.exports = {
