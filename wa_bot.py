@@ -21,7 +21,7 @@ openai_model = 'gpt-3.5-turbo'
 def generate_gpt_response(messages):
     today = datetime.datetime.now().strftime("%B %d, %Y")
 
-    messages.append({"role" : "system", "content" : "You are a helpful expert assistant, Robot 1-X, integrated into a WhatsApp chat. Today is %s. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well." % today})
+    messages.append({"role" : "system", "content" : "You are a helpful expert assistant, Robot 1-X, integrated into a WhatsApp chat. When possible, always guide users to chat with you in English. Today is %s. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well." % today})
 
     messages.reverse()
 
@@ -90,7 +90,7 @@ def wa_unroll_message_history(chat_id, msg_id):
 
         num_tokens += int(len(text) / 4) + 1
 
-        if num_tokens > 2048:
+        if num_tokens > 1900:
             break
 
         msg_history.append({"role" : role, "content" : text})
