@@ -1,8 +1,8 @@
 var winston = require("winston");
 require("winston-daily-rotate-file");
 
-const maxFileSize = process.env.MAX_LOG_FILE_SIZE || "10m";
-const maxLogFiles = process.env.MAX_LOG_FILES || "10";
+const maxFileSize = process.env.MAX_LOG_FILE_SIZE || "100m";
+const maxLogFiles = process.env.MAX_LOG_FILES || "50";
 
 var transport = new winston.transports.DailyRotateFile({
   level: "info",
