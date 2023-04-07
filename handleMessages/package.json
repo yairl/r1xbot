@@ -19,7 +19,9 @@
     "pg": "^8.10.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.30.0",
-    "sqs-consumer": "^7.0.3"
+    "sqs-consumer": "^7.0.3",
+    "winston": "^3.8.2",
+    "winston-daily-rotate-file": "^4.7.1"
   },
   "devDependencies": {
     "sequelize-cli": "^6.6.0"

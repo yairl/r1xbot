@@ -1,8 +1,9 @@
+const logger = require("../../utils/logger");
 function parseMessage(message) {
   const source = "wa";
   const messageTimestamp = message.data.time * 1e3;
   const chatId = message.data.fromMe ? message.data.to : message.data.from;
-  const chatType = chatId.endsWith('@g.us') ? 'group' : 'private';
+  const chatType = chatId.endsWith("@g.us") ? "group" : "private";
   const senderId =
     message.data.author == "" ? message.data.from : message.data.author;
   const isSentByMe = message.data.fromMe;
@@ -27,31 +28,29 @@ function parseMessage(message) {
 }
 
 async function sendMessage(ctx, attributes) {
-  const {
-    chatId,
-    quoteId,
-    kind,
-    body
-  } = attributes;
+  const { chatId, quoteId, kind, body } = attributes;
 
-  if (kind != 'text') {
-    return ;
+  if (kind != "text") {
+    return;
   }
 
-  const axios = require('axios');
+  const axios = require("axios");
 
-  var args = { token : process.env.WHATSAPP_TOKEN, to : chatId, body : body };
-  
+  var args = { token: process.env.WHATSAPP_TOKEN, to: chatId, body: body };
+
   if (quoteId) {
-      args.msgId = quoteId;
+    args.msgId = quoteId;
   }
 
-  const response = await axios.post(`https://api.ultramsg.com/instance${process.env.WHATSAPP_INSTANCE}/messages/chat`, args);
-  console.log(`[${ctx}] `, response);
+  const response = await axios.post(
+    `https://api.ultramsg.com/instance${process.env.WHATSAPP_INSTANCE}/messages/chat`,
+    args
+  );
+  logger.info(`[${ctx}] `, response);
 }
 
 function isMessageForMe(msg) {
-  if (msg.chatType == 'private') {
+  if (msg.chatType == "private") {
     return true;
   }
 
@@ -63,4 +62,3 @@ module.exports = {
   sendMessage,
   isMessageForMe
 };
-

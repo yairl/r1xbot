@@ -1,3 +1,4 @@
+const logger = require("../../utils/logger");
 const { Configuration, OpenAIApi } = require("openai");
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
@@ -14,10 +15,10 @@ function convertMessageToChatFormat(message) {
 
 async function getChatCompletion(ctx, messages) {
   const systemMessage = {
-      role: "system",
-      content: `You are a helpful expert assistant, Robot 1-X, integrated into a Telegram chat. Today's date is ${new Date(
-        Date.now()
-      ).toDateString()}. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well.`
+    role: "system",
+    content: `You are a helpful expert assistant, Robot 1-X, integrated into a Telegram chat. Today's date is ${new Date(
+      Date.now()
+    ).toDateString()}. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well.`
   };
 
   let numTokens = 0;
@@ -41,14 +42,14 @@ async function getChatCompletion(ctx, messages) {
   parsedMessages.push(systemMessage);
   parsedMessages.reverse();
 
-  console.log(`[${ctx}] getChatCompletion messages: `, parsedMessages);
+  logger.info(`[${ctx}] getChatCompletion messages: `, parsedMessages);
 
   const completion = await openai.createChatCompletion({
     model: process.env.OPENAI_MODEL,
     messages: parsedMessages
   });
 
-  console.log(`[${ctx}] getChatCompletion response: `, completion);
+  // logger.info(`[${ctx}] getChatCompletion response: `, completion);
 
   return completion.data.choices[0].message.content;
 }

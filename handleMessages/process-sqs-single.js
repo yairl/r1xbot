@@ -1,14 +1,16 @@
-require("dotenv").config();
+const logger = require("./src/utils/logger");
+require("./src/utils/init-env-vars").config();
 
-var ctx = { msgCount : 0 };
+var ctx = { msgCount: 0 };
 
-const AWS = require('aws-sdk');
-const { v4: uuidv4 } = require('uuid');
+const AWS = require("aws-sdk");
+const { v4: uuidv4 } = require("uuid");
 
-const sqs = new AWS.SQS({ region: 'eu-central-1' });
-const queueUrl = 'https://sqs.eu-central-1.amazonaws.com/165354665739/ingress-queue.fifo';
+const sqs = new AWS.SQS({ region: "eu-central-1" });
+const queueUrl =
+  "https://sqs.eu-central-1.amazonaws.com/165354665739/ingress-queue.fifo";
 
-const { handler } = require('./index');
+const { handler } = require("./index");
 
 // Receive messages from the SQS queue
 const receiveParams = {
@@ -21,26 +23,29 @@ sqs.receiveMessage(receiveParams, messageHandler);
 
 async function messageHandler(err, data) {
   if (err) {
-    console.log(`Error receiving message:`, err);
+    logger.info(`Error receiving message:`, err);
   } else if (data.Messages) {
-    console.log('Received', data.Messages.length, 'messages:');
+    logger.info("Received", data.Messages.length, "messages:");
     data.Messages.forEach((message) => {
       currMsgCount = ++ctx.msgCount;
-//      console.log(`[${currMsgCount}] Message ID:`, message.MessageId);
-//      console.log(`[${currMsgCount}] Message Body:`, message.Body);
-//      console.log(`[${currMsgCount}] Message Attributes:`, message.MessageAttributes);
-//      console.log(`[${currMsgCount}] Message Receipt Handle:`, message.ReceiptHandle);
+      //      logger.info(`[${currMsgCount}] Message ID:`, message.MessageId);
+      //      logger.info(`[${currMsgCount}] Message Body:`, message.Body);
+      //      logger.info(`[${currMsgCount}] Message Attributes:`, message.MessageAttributes);
+      //      logger.info(`[${currMsgCount}] Message Receipt Handle:`, message.ReceiptHandle);
       handler(currMsgCount, message.Body);
 
       const deleteParams = {
         QueueUrl: queueUrl,
-        ReceiptHandle : message.ReceiptHandle
+        ReceiptHandle: message.ReceiptHandle
       };
 
-      console.log(`[${currMsgCount}] Delete parameters: `, deleteParams);
- 
-      const result = sqs.deleteMessage(deleteParams, (err, data) => {console.log(`[${currMsgCount}] ${err}`); console.log(`[${currMsgCount}] ${data}`);});
-      console.log(`[${currMsgCount}] Delete result: `, result);
+      logger.info(`[${currMsgCount}] Delete parameters: `, deleteParams);
+
+      const result = sqs.deleteMessage(deleteParams, (err, data) => {
+        logger.info(`[${currMsgCount}] ${err}`);
+        logger.info(`[${currMsgCount}] ${data}`);
+      });
+      logger.info(`[${currMsgCount}] Delete result: `, result);
     });
   }
 }
