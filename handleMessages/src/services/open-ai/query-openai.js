@@ -44,14 +44,25 @@ async function getChatCompletion(ctx, messages) {
 
   logger.info(`[${ctx}] getChatCompletion messages: `, parsedMessages);
 
-  const completion = await openai.createChatCompletion({
-    model: process.env.OPENAI_MODEL,
-    messages: parsedMessages
-  });
+  try {
+    logger.info(`[${ctx}] invoking completion request.`);
+    const completion = await openai.createChatCompletion({
+      model: process.env.OPENAI_MODEL,
+      messages: parsedMessages
+    });
 
-  // logger.info(`[${ctx}] getChatCompletion response: `, completion);
+    logger.info(`[${ctx}] getChatCompletion response: `, completion.data.choices[0].message.content);
 
-  return completion.data.choices[0].message.content;
+    return completion.data.choices[0].message.content;
+  } catch (e) {
+      if (e.response) {
+        logger.info(`[${ctx}] error: `, e.reponse.status, e.response.data);
+      } else {
+	logger.info(`[${ctx}] error: `, e.message);
+      }
+
+      throw new Error(`[${ctx}] error generation completion from OpenAI.`);
+  }
 }
 
 // TODO whisper
