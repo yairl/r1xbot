@@ -20,4 +20,4 @@ var logger = winston.createLogger({
   ]
 });
 
-module.exports = logger;
+module.exports = console;

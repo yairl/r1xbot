@@ -31,12 +31,13 @@ async function getChatCompletion(ctx, messages) {
       continue;
     }
 
-    numTokens += Math.floor(message.body.length / 4) + 1;
+    const asciiOnly = /^[\u0000-\u007f]*$/.test(message.body);
+    const tokenScaler = asciiOnly ? 4 : 2;
+
+    numTokens += Math.floor(message.body.length / tokenScaler) + 1;
     if (numTokens > 1080) {
       break;
     }
-
-    console.log(`Message: ${message.body}, ${message.body.length}, numTokens = ${numTokens}`);
 
     parsedMessages.push(convertMessageToChatFormat(message));
   }
