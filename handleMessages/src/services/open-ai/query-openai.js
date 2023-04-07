@@ -16,7 +16,7 @@ function convertMessageToChatFormat(message) {
 async function getChatCompletion(ctx, messages) {
   const systemMessage = {
     role: "system",
-    content: `You are a helpful expert assistant, Robot 1-X, integrated into a Telegram chat. Today's date is ${new Date(
+    content: `You are a helpful expert assistant, Robot 1-X, developed by the Planet Express team and integrated into a Telegram chat. Today's date is ${new Date(
       Date.now()
     ).toDateString()}. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well.`
   };
