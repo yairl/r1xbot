@@ -32,9 +32,11 @@ async function getChatCompletion(ctx, messages) {
     }
 
     numTokens += Math.floor(message.body.length / 4) + 1;
-    if (numTokens > 1200) {
+    if (numTokens > 1080) {
       break;
     }
+
+    console.log(`Message: ${message.body}, ${message.body.length}, numTokens = ${numTokens}`);
 
     parsedMessages.push(convertMessageToChatFormat(message));
   }
@@ -55,13 +57,13 @@ async function getChatCompletion(ctx, messages) {
 
     return completion.data.choices[0].message.content;
   } catch (e) {
-      if (e.response) {
-        logger.info(`[${ctx}] error: `, e.reponse.status, e.response.data);
-      } else {
-	logger.info(`[${ctx}] error: `, e.message);
-      }
+    if (e.response) {
+      logger.info(`[${ctx}] error: `, e.response.status, e.response.data);
+    } else {
+      logger.info(`[${ctx}] error: `, e.message);
+    }
 
-      throw new Error(`[${ctx}] error generation completion from OpenAI.`);
+    throw new Error(`[${ctx}] error generation completion from OpenAI.`);
   }
 }
 
