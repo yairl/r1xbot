@@ -82,7 +82,7 @@ async function getMessageIndexUptoMaxTokens(systemMessage, chatMessages, maxToke
 
     // find the first token to start from, going from the end
     for (; startIndex >= 1; --startIndex) {
-        let message = chatMessages[startIndex-1];
+        const message = chatMessages[startIndex-1];
 
         numTokens += getMessageTokens(message);
 
@@ -104,10 +104,10 @@ async function getMessagesUptoMaxTokens(ctx, systemMessage, chatMessages, maxTok
     }
 
     // get indication which messages to include
-    let [includeSystemMessage, startIndex] = await getMessageIndexUptoMaxTokens(systemMessage, chatMessages, maxTokens);
+    const [includeSystemMessage, startIndex] = await getMessageIndexUptoMaxTokens(systemMessage, chatMessages, maxTokens);
     
     // initialize result
-    let result = [];
+    const result = [];
 
     // bail early if even SystemMessage cannot fit system
     if (includeSystemMessage == false) {
@@ -120,7 +120,7 @@ async function getMessagesUptoMaxTokens(ctx, systemMessage, chatMessages, maxTok
     result[0] = systemMessage;
 
     for (let i = startIndex; i < chatMessages.length; i++) {
-        let resultIndex = i-startIndex+1; // remove offset
+        const resultIndex = i-startIndex+1; // remove offset
         result[resultIndex] = chatMessages[i];
     }
 
@@ -129,8 +129,6 @@ async function getMessagesUptoMaxTokens(ctx, systemMessage, chatMessages, maxTok
 
 // Used to initialize the global var
 function init() {
-    let timestamp = moment().format('YYYY-MM-DD HH:mm:ss');
-    logger.info(`${timestamp} ${__filename}:${init.name} started.`);
     try {
         assert.equal(models[process.env.OPENAI_MODEL], 'cl100k_base', `This code assumes that the model of ${process.env.OPENAI_MODEL} to be "cl100k_base", but got ${models[process.env.OPENAI_MODEL]}`);
 
@@ -142,8 +140,6 @@ function init() {
     } catch (error) {
         console.log('Error occurred while initializing:', error);
     }
-    timestamp = moment().format('YYYY-MM-DD HH:mm:ss');
-    logger.info(`${timestamp} ${__filename}:${init.name} ended.`);
 }
 
 function cleanup() {

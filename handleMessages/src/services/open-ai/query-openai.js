@@ -24,17 +24,21 @@ async function getChatCompletion(ctx, messages) {
     ).toDateString()}. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well.`
   };
 
-  let numTokens = 0;
-
   const parsedMessages = [];
 
-  for (let message of messages) {
+  for (const message of messages) {
+    // this can happen if the message doesn't have any text, like audio
+    if (message.body == null) {
+      continue;
+    }
     parsedMessages.push(convertMessageToChatFormat(message));
   }
 
-  const maxTokens = 1080;
+  logger.info(`[${ctx}] getChatCompletion parsedMessages: `, parsedMessages);
+
+  const maxTokens = 2048;
   // get list of messages that will consume upto maxToken. This includes also the system message.
-  let messagesUptoMaxTokens = await tokenPredictor.getMessagesUptoMaxTokens(ctx, systemMessage, parsedMessages, maxTokens);
+  const messagesUptoMaxTokens = await tokenPredictor.getMessagesUptoMaxTokens(ctx, systemMessage, parsedMessages, maxTokens);
 
   logger.info(`[${ctx}] getChatCompletion messagesUptoMaxTokens: `, messagesUptoMaxTokens);
 
@@ -45,7 +49,7 @@ async function getChatCompletion(ctx, messages) {
       messages: messagesUptoMaxTokens
     });
 
-    let expectedNumTokens = await tokenPredictor.numTokensFromMessages(messagesUptoMaxTokens);
+    const expectedNumTokens = await tokenPredictor.numTokensFromMessages(messagesUptoMaxTokens);
     logger.info(`[${ctx}] getChatCompletion expectedNumTokens:`, expectedNumTokens, `actual completion.data.usage.prompt_tokens:`, completion.data.usage.prompt_tokens);
 
     logger.info(`[${ctx}] getChatCompletion response: `, completion.data.choices[0].message.content);
