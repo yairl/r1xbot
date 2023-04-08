@@ -4,9 +4,9 @@ require("dotenv").config();
 const tokenPredictor = require(".././src/services/token-prediction/token-predictor");
 
 async function main() {
-    let systemMessage = {"role": "system", "content": "you are a helpful bot"};
+    const systemMessage = {"role": "system", "content": "you are a helpful bot"};
 
-    let chatMessages = [
+    const chatMessages = [
          {"role": "user", "content": "i'm your lord"},
          {"role": "assistant", "content": "you'd wish"},
          {"role": "user", "content": "מה אתה אומר"},
@@ -14,26 +14,26 @@ async function main() {
     ];
 
     // build the expected behavior. a map from number of tokens --> message list using the numTokensFromMessages predictor
-    let numTokensToMessages = new Map();
-    let previousMessages = [];
+    const numTokensToMessages = new Map();
+    const previousMessages = [];
     let previousNumTokens = 0;
     const chatMessagesReversed = chatMessages.slice().reverse(); // make a copy of chatMessages and reverse it
     
     for (let numChatMessages = 0; numChatMessages <= chatMessagesReversed.length ; ++numChatMessages) {
         // take the first numChatMessages from the end
-        let subsetChatMessagesReversed = chatMessagesReversed.slice(0, numChatMessages);
+        const subsetChatMessagesReversed = chatMessagesReversed.slice(0, numChatMessages);
 
         // get back the normal order 
-        let subsetChatMessages = subsetChatMessagesReversed.slice().reverse();
+        const subsetChatMessages = subsetChatMessagesReversed.slice().reverse();
 
         // build the full list message
-        let combinedMessages = [systemMessage, ...subsetChatMessages];
+        const combinedMessages = [systemMessage, ...subsetChatMessages];
 
         // calculate their number of tokens
-        let numTokens = await tokenPredictor.numTokensFromMessages(combinedMessages);
+        const numTokens = await tokenPredictor.numTokensFromMessages(combinedMessages);
 
         // fill out the entries of token sizes for the unset sizes so far in the message map
-        for (let token = previousNumTokens; token < numTokens; token++) {
+        for (const token = previousNumTokens; token < numTokens; token++) {
             numTokensToMessages[token] = previousMessages;
         }
 
@@ -51,8 +51,8 @@ async function main() {
      
       
     // verify that the message selector picks up exactly the expected messages. Go +10 beyond the last previousNumTokens just for checks.
-    for (let maxTokens = 0; maxTokens < previousNumTokens+10; maxTokens ++) {
-        let actualMessages = await tokenPredictor.getMessagesUptoMaxTokens(systemMessage, chatMessages, maxTokens);
+    for (const maxTokens = 0; maxTokens < previousNumTokens+10; maxTokens ++) {
+        const actualMessages = await tokenPredictor.getMessagesUptoMaxTokens(systemMessage, chatMessages, maxTokens);
 
         //console.log(`maxTokens=${maxTokens}\n  actual=${JSON.stringify(actualMessages)}\nexpected=${JSON.stringify(numTokensToMessages[maxTokens])}`);
         try {
@@ -70,7 +70,7 @@ async function main() {
     }
     
     // Get the index of the message within the chatMessages list from which messages should be taken.
-    // let res = await tokenPredictor.getMessageIndexUptoMaxTokens(systemMessage, chatMessages, 17); console.log(res);
+    // const res = await tokenPredictor.getMessageIndexUptoMaxTokens(systemMessage, chatMessages, 17); console.log(res);
 
     // Get the number of tokens a list of messages should consume
     // tokens = await tokenPredictor.numTokensFromMessages(combined);  console.log("numTokensFromMessages", tokens);
