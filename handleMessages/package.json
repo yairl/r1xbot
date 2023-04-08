@@ -12,6 +12,7 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
+    "@dqbd/tiktoken": "^1.0.3",
     "aws-sdk": "^2.1350.0",
     "dotenv": "^16.0.3",
     "fluent-ffmpeg": "^2.1.2",

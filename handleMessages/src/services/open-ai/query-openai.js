@@ -1,9 +1,11 @@
+"use strict";
 const logger = require("../../utils/logger");
 const { Configuration, OpenAIApi } = require("openai");
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
 });
 const openai = new OpenAIApi(configuration);
+const tokenPredictor = require("../token-prediction/token-predictor");
 
 function convertMessageToChatFormat(message) {
   const convertedMessage = {
@@ -14,6 +16,7 @@ function convertMessageToChatFormat(message) {
 }
 
 async function getChatCompletion(ctx, messages) {
+  // messages are ordered old-->new
   const systemMessage = {
     role: "system",
     content: `You are a helpful expert assistant, Robot 1-X, developed by the Planet Express team and integrated into a Telegram chat. Today's date is ${new Date(
@@ -21,38 +24,31 @@ async function getChatCompletion(ctx, messages) {
     ).toDateString()}. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well.`
   };
 
-  let numTokens = 0;
-
   const parsedMessages = [];
-  messages.reverse();
 
-  for (message of messages) {
+  for (const message of messages) {
+    // this can happen if the message doesn't have any text, like audio
     if (message.body == null) {
       continue;
     }
-
-    const asciiOnly = /^[\u0000-\u007f]*$/.test(message.body);
-    const tokenScaler = asciiOnly ? 4 : 2;
-
-    numTokens += Math.floor(message.body.length / tokenScaler) + 1;
-    if (numTokens > 1080) {
-      break;
-    }
-
     parsedMessages.push(convertMessageToChatFormat(message));
   }
 
-  parsedMessages.push(systemMessage);
-  parsedMessages.reverse();
+  const maxTokens = 2048;
+  // get list of messages that will consume upto maxToken. This includes also the system message.
+  const messagesUptoMaxTokens = await tokenPredictor.getMessagesUptoMaxTokens(ctx, systemMessage, parsedMessages, maxTokens);
 
-  logger.info(`[${ctx}] getChatCompletion messages: `, parsedMessages);
+  logger.info(`[${ctx}] getChatCompletion messagesUptoMaxTokens: `, messagesUptoMaxTokens);
 
   try {
     logger.info(`[${ctx}] invoking completion request.`);
     const completion = await openai.createChatCompletion({
       model: process.env.OPENAI_MODEL,
-      messages: parsedMessages
+      messages: messagesUptoMaxTokens
     });
+
+    const expectedNumTokens = await tokenPredictor.numTokensFromMessages(messagesUptoMaxTokens);
+    logger.info(`[${ctx}] getChatCompletion expectedNumTokens:`, expectedNumTokens, `actual completion.data.usage.prompt_tokens:`, completion.data.usage.prompt_tokens);
 
     logger.info(`[${ctx}] getChatCompletion response: `, completion.data.choices[0].message.content);
 
