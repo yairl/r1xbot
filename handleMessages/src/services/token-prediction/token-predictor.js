@@ -1,9 +1,11 @@
 "use strict";
 
 const assert = require('assert');
+const logger = require("../../utils/logger");
 const { Tiktoken } = require("@dqbd/tiktoken/lite");
 const cl100k_base = require("@dqbd/tiktoken/encoders/cl100k_base.json");
 const models = require("@dqbd/tiktoken/model_to_encoding.json");
+const moment = require('moment');
 
 // global variable to hold the encode objects between invocations
 let encoder;
@@ -94,7 +96,9 @@ async function getMessageIndexUptoMaxTokens(systemMessage, chatMessages, maxToke
 }
 
 // @returns A list of messages comprised from systemMessage and last messages of chatMessages that will take leq tokens than maxTokens
-async function getMessagesUptoMaxTokens(systemMessage, chatMessages, maxTokens) {
+async function getMessagesUptoMaxTokens(ctx, systemMessage, chatMessages, maxTokens) {
+    logger.info(`[${ctx}] getMessagesUptoMaxTokens: chatMessages.length=${chatMessages.length}, maxTokens=${maxTokens}`);
+
     if (!encoder) {
         throw new Error('encoder is not initialized');
     }
@@ -125,6 +129,8 @@ async function getMessagesUptoMaxTokens(systemMessage, chatMessages, maxTokens) 
 
 // Used to initialize the global var
 function init() {
+    let timestamp = moment().format('YYYY-MM-DD HH:mm:ss');
+    logger.info(`${timestamp} ${__filename}:${init.name} started.`);
     try {
         assert.equal(models[process.env.OPENAI_MODEL], 'cl100k_base', `This code assumes that the model of ${process.env.OPENAI_MODEL} to be "cl100k_base", but got ${models[process.env.OPENAI_MODEL]}`);
 
@@ -136,6 +142,8 @@ function init() {
     } catch (error) {
         console.log('Error occurred while initializing:', error);
     }
+    timestamp = moment().format('YYYY-MM-DD HH:mm:ss');
+    logger.info(`${timestamp} ${__filename}:${init.name} ended.`);
 }
 
 function cleanup() {
