@@ -17,8 +17,6 @@ function convertMessageToChatFormat(message) {
 
 async function getChatCompletion(ctx, messages) {
   // messages are ordered old-->new
-  logger.info(`[${ctx}] getChatCompletion called`);
-
   const systemMessage = {
     role: "system",
     content: `You are a helpful expert assistant, Robot 1-X, developed by the Planet Express team and integrated into a Telegram chat. Today's date is ${new Date(
