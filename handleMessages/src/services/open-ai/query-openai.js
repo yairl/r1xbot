@@ -34,8 +34,6 @@ async function getChatCompletion(ctx, messages) {
     parsedMessages.push(convertMessageToChatFormat(message));
   }
 
-  logger.info(`[${ctx}] getChatCompletion parsedMessages: `, parsedMessages);
-
   const maxTokens = 2048;
   // get list of messages that will consume upto maxToken. This includes also the system message.
   const messagesUptoMaxTokens = await tokenPredictor.getMessagesUptoMaxTokens(ctx, systemMessage, parsedMessages, maxTokens);
