@@ -1,11 +1,12 @@
 const logger = require("../utils/logger");
-const { getChatCompletion } = require("../services/open-ai/query-openai");
+const { getChatCompletion, createTranscription } = require("../services/open-ai/query-openai");
 const db = require("../db/models");
 const {
   insertMessage,
   getMessageHistory
 } = require("../services/messages/messages-service");
 const messengers = require("../services/messengers");
+const fileServices = require("../utils/file-services");
 
 // Handle incoming message from ingress SQS queue.
 //
@@ -19,7 +20,23 @@ async function handleIncomingMessage(ctx, event) {
     // 1. Parse message and insert to database
     const parsedEvent = JSON.parse(event);
     const messenger = messengers[parsedEvent.source];
-    const parsedMessage = messenger.parseMessage(parsedEvent.event);
+    // TODO ishumsky - fileId is outside until added to the DB
+    const [parsedMessage, fileId] = messenger.parseMessage(parsedEvent.event);
+
+    if (parsedMessage.kind == 'voice') {
+      parsedMessage.body = await getTranscript(ctx, messenger, fileId);
+      
+      [quoteTranscription, unused_replyToVoiceMessage] = getVoiceMessageActions(messenger.isMessageForMe(parsedMessage));
+      
+      if (quoteTranscription) {
+        await messenger.sendMessage(ctx, {
+          chatId: parsedMessage.chatId,
+          kind: "text",
+          body: parsedMessage.body,
+          quoteId: parsedMessage.messageId,
+        });
+      }
+    }
 
     const message = await insertMessage(ctx, parsedMessage);
 
@@ -89,6 +106,30 @@ And of course, read my privacy policy at https://r1x.ai/privacy.`
     kind: "text",
     body: introMessageOverview
   });
+}
+
+async function getTranscript(ctx, messenger, fileId) {
+  const tmpFolderBase = './tmp/';
+  let mp3FilePath = undefined;
+  try {
+    mp3FilePath = await messenger.getVoiceMp3File(ctx, tmpFolderBase, fileId);
+    const transcription = await createTranscription(ctx, mp3FilePath);
+
+    return transcription;
+
+  } finally {
+    // this code assumes that if mp3FilePath is defined, then it exists, and should be deleted no matter what
+    if (mp3FilePath) {
+      fileServices.deleteFile(ctx, mp3FilePath);
+    }
+  }
+}
+
+function getVoiceMessageActions(isMessageToMe) {
+  // quote transcription only in group chats
+  const quoteTranscription = true;
+  const unused_replyToVoiceMessage = undefined;
+  return [quoteTranscription, unused_replyToVoiceMessage];
 }
 
 module.exports = {

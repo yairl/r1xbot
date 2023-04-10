@@ -1,6 +1,8 @@
 "use strict";
 const logger = require("../../utils/logger");
+const fs = require('fs');
 const { Configuration, OpenAIApi } = require("openai");
+
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
 });
@@ -64,12 +66,18 @@ async function getChatCompletion(ctx, messages) {
   }
 }
 
-// TODO whisper
-// async function getTranscript(filePath) {
-//   const openedFile =
-//   const transcript = openai.createTranscription()
-// }
+
+async function createTranscription(ctx, mp3FilePath) {
+  const transcription = await openai.createTranscription(  
+    fs.createReadStream(mp3FilePath),
+    process.env.OPENAI_SPEECH_TO_TEXT_MODEL,
+  );
+
+  logger.info(`[${ctx}] createTranscription transcription=${transcription.data.text}`);
+  return transcription.data.text;
+}
 
 module.exports = {
-  getChatCompletion
+  getChatCompletion,
+  createTranscription
 };
