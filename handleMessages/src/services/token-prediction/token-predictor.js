@@ -1,7 +1,6 @@
 "use strict";
 
 const assert = require('assert');
-const logger = require("../../utils/logger");
 const { Tiktoken } = require("@dqbd/tiktoken/lite");
 const cl100k_base = require("@dqbd/tiktoken/encoders/cl100k_base.json");
 const models = require("@dqbd/tiktoken/model_to_encoding.json");
@@ -97,7 +96,7 @@ async function getMessageIndexUptoMaxTokens(systemMessage, chatMessages, maxToke
 
 // @returns A list of messages comprised from systemMessage and last messages of chatMessages that will take leq tokens than maxTokens
 async function getMessagesUptoMaxTokens(ctx, systemMessage, chatMessages, maxTokens) {
-    logger.info(`[${ctx}] getMessagesUptoMaxTokens: chatMessages.length=${chatMessages.length}, maxTokens=${maxTokens}`);
+    ctx.log(`getMessagesUptoMaxTokens: chatMessages.length=${chatMessages.length}, maxTokens=${maxTokens}`);
 
     if (!encoder) {
         throw new Error('encoder is not initialized');

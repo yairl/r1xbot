@@ -1,4 +1,6 @@
-const logger = require("./src/utils/logger");
+"use strict";
+
+const { logger, createLoggingContext } = require("./src/utils/logger");
 require("./src/utils/init-env-vars").config();
 
 const { Consumer } = require("sqs-consumer");
@@ -15,11 +17,11 @@ for (let i = 0; i < numOfConsumers; i++) {
   const app = Consumer.create({
     queueUrl: process.env.SQS_QUEUE_URL,
     handleMessage: async (message) => {
-      currMsgCount = ++ctx.msgCount;
-      logger.info(`[${currMsgCount}] `, "Starting to handle message");
+      const logCtx = createLoggingContext(++ctx.msgCount); 
+      logCtx.log("Starting to handle message");
 
-      const result = await handler(currMsgCount, message.Body);
-      logger.info(`[${currMsgCount}] `, "Finished handling message");
+      const result = await handler(logCtx, message.Body);
+      logCtx.log("Finished handling message");
     },
     sqs: new SQSClient({
       region: "eu-central-1"
