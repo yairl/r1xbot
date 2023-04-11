@@ -1,5 +1,6 @@
 const logger = require("../../utils/logger");
 const { insertMessage } = require("../messages/messages-service");
+const axios = require("axios");
 
 function parseMessage(message) {
   message = message.message;
@@ -40,8 +41,6 @@ async function sendMessage(ctx, attributes) {
     return;
   }
 
-  const axios = require("axios");
-
   var args = { chat_id: chatId, text: body };
   if (quoteId) {
     args.reply_to_message_id = quoteId;
@@ -75,8 +74,17 @@ function isMessageForMe(msg) {
   return false;
 }
 
+function setTyping(chat_id) {
+  axios.post(
+    `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendChatAction`,
+    { chat_id : chat_id, action : 'typing' } 
+  );
+}
+
 module.exports = {
   parseMessage,
   sendMessage,
-  isMessageForMe
+  isMessageForMe,
+  setTyping
+
 };
