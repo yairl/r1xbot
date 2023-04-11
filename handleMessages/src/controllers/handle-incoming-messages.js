@@ -34,6 +34,8 @@ async function handleIncomingMessage(ctx, event) {
     }
 
     // 2. Get chat history, and send an intro message.
+    messenger.setTyping(parsedMessage.chatId);
+
     const messageHistory = await getMessageHistory(ctx, message);
     logger.info(`[${ctx}] message history pulled.`);
 
@@ -44,6 +46,8 @@ async function handleIncomingMessage(ctx, event) {
     }  
 
     // 3. Generate reply
+    messenger.setTyping(parsedMessage.chatId);
+
     logger.info(`[${ctx}] calling getChatCompletion...`);
     const replyMessage = await getChatCompletion(ctx, messageHistory);
     logger.info(`[${ctx}] getChatCompletion done, result is `, { replyMessage });
