@@ -1,5 +1,5 @@
 "use strict";
-const logger = require("../../utils/logger");
+
 const { Configuration, OpenAIApi } = require("openai");
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
@@ -38,29 +38,30 @@ async function getChatCompletion(ctx, messages) {
   // get list of messages that will consume upto maxToken. This includes also the system message.
   const messagesUptoMaxTokens = await tokenPredictor.getMessagesUptoMaxTokens(ctx, systemMessage, parsedMessages, maxTokens);
 
-  logger.info(`[${ctx}] getChatCompletion messagesUptoMaxTokens: `, messagesUptoMaxTokens);
+  ctx.log('getChatCompletion messagesUptoMaxTokens: ', messagesUptoMaxTokens);
 
   try {
-    logger.info(`[${ctx}] invoking completion request.`);
+    ctx.log('invoking completion request.');
     const completion = await openai.createChatCompletion({
       model: process.env.OPENAI_MODEL,
       messages: messagesUptoMaxTokens
     });
 
     const expectedNumTokens = await tokenPredictor.numTokensFromMessages(messagesUptoMaxTokens);
-    logger.info(`[${ctx}] getChatCompletion expectedNumTokens:`, expectedNumTokens, `actual completion.data.usage.prompt_tokens:`, completion.data.usage.prompt_tokens);
+    ctx.log(`getChatCompletion expectedNumTokens: ${expectedNumTokens}, actual completion.data.usage.prompt_tokens: ${completion.data.usage.prompt_tokens}`);
 
-    logger.info(`[${ctx}] getChatCompletion response: `, completion.data.choices[0].message.content);
+    ctx.log('getChatCompletion response: ', completion.data.choices[0].message.content);
 
     return completion.data.choices[0].message.content;
   } catch (e) {
     if (e.response) {
-      logger.info(`[${ctx}] error: `, e.response.status, e.response.data);
+      ctx.log('error: ', e.response.status, e.response.data);
     } else {
-      logger.info(`[${ctx}] error: `, e.message);
+      ctx.log('error: ', e.message);
     }
 
-    throw new Error(`[${ctx}] error generation completion from OpenAI.`);
+    ctx.log('error generating completion from OpenAI.');
+    throw new Error('error generating completion from OpenAI.');
   }
 }
 

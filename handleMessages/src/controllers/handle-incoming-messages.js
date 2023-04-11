@@ -1,10 +1,6 @@
-const logger = require("../utils/logger");
 const { getChatCompletion } = require("../services/open-ai/query-openai");
 const db = require("../db/models");
-const {
-  insertMessage,
-  getMessageHistory
-} = require("../services/messages/messages-service");
+const ms = require("../services/messages/messages-service");
 const messengers = require("../services/messengers");
 
 // Handle incoming message from ingress SQS queue.
@@ -21,7 +17,7 @@ async function handleIncomingMessage(ctx, event) {
     const messenger = messengers[parsedEvent.source];
     const parsedMessage = messenger.parseMessage(parsedEvent.event);
 
-    const message = await insertMessage(ctx, parsedMessage);
+    const message = await ms.insertMessage(ctx, parsedMessage);
 
     // If this is a callback notifying us of a message we sent, we're done processing and can exit.
     if (message.isSentByMe || message.body == null) {
@@ -36,11 +32,11 @@ async function handleIncomingMessage(ctx, event) {
     // 2. Get chat history, and send an intro message.
     messenger.setTyping(parsedMessage.chatId);
 
-    const messageHistory = await getMessageHistory(ctx, message);
-    logger.info(`[${ctx}] message history pulled.`);
+    const messageHistory = await ms.getMessageHistory(ctx, message);
+    ctx.log('message history pulled.');
 
     if (messageHistory.length <= 1) {
-      logger.info(`[${ctx}] sending intro message.`);
+      ctx.log('sending intro message.');
       await sendIntroMessage(ctx, messenger, parsedMessage);
       return ;
     }  
@@ -48,9 +44,9 @@ async function handleIncomingMessage(ctx, event) {
     // 3. Generate reply
     messenger.setTyping(parsedMessage.chatId);
 
-    logger.info(`[${ctx}] calling getChatCompletion...`);
+    ctx.log('calling getChatCompletion...');
     const replyMessage = await getChatCompletion(ctx, messageHistory);
-    logger.info(`[${ctx}] getChatCompletion done, result is `, { replyMessage });
+    ctx.log('getChatCompletion done, result is ', { replyMessage });
 
     // 4. Send reply to user
     await messenger.sendMessage(ctx, {
@@ -60,8 +56,8 @@ async function handleIncomingMessage(ctx, event) {
     });
     return `replied: ${replyMessage}`;
   } catch (error) {
-    logger.info(`[${ctx}] `, error.stack);
-    throw new Error(`[${ctx}] Message processing failed.`);
+    ctx.log('Message processing failed: ', error.stack);
+    throw new Error(`Message processing failed.`);
   }
 }
 

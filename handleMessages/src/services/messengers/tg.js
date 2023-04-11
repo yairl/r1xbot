@@ -1,4 +1,3 @@
-const logger = require("../../utils/logger");
 const { insertMessage } = require("../messages/messages-service");
 const axios = require("axios");
 
@@ -50,15 +49,15 @@ async function sendMessage(ctx, attributes) {
     `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
     args
   );
-  //logger.info(`[${ctx}] `, response);
+  //ctx.log(response);
 
   if (response.data.ok) {
     message = { message: response.data.result };
     parsedMessage = parseMessage(message);
-    logger.info(`[${ctx}] `, { parsedMessage });
+    ctx.log({ parsedMessage });
 
     await insertMessage(ctx, parsedMessage);
-    logger.info(`[${ctx}] Sent message inserted successfully: `, parsedMessage);
+    ctx.log(`Message inserted successfully: `, parsedMessage);
   }
 }
 
@@ -86,5 +85,4 @@ module.exports = {
   sendMessage,
   isMessageForMe,
   setTyping
-
 };

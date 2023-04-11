@@ -1,4 +1,3 @@
-const logger = require("../../utils/logger");
 function parseMessage(message) {
   const source = "wa";
   const messageTimestamp = message.data.time * 1e3;
@@ -46,7 +45,7 @@ async function sendMessage(ctx, attributes) {
     `https://api.ultramsg.com/instance${process.env.WHATSAPP_INSTANCE}/messages/chat`,
     args
   );
-  logger.info(`[${ctx}] `, response);
+  ctx.log(response);
 }
 
 function isMessageForMe(msg) {

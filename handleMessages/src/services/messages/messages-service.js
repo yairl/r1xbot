@@ -1,4 +1,3 @@
-const logger = require("../../utils/logger");
 const { Op } = require("sequelize");
 const { Message } = require("../../db/models");
 
@@ -16,7 +15,7 @@ async function insertMessage(ctx, attributes) {
     body,
     rawSource
   } = attributes;
-  //logger.info(`[${ctx}] insertMessage attributes: `, { attributes });
+  ctx.log('insertMessage attributes: ', { attributes });
 
   // Yair: don't think this makes sense long term, probably has a way to do insert-if-new in one API call.
   const existingMessage = await Message.findOne({
