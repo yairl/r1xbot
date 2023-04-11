@@ -29,10 +29,11 @@ async function handleIncomingMessage(ctx, event) {
       [quoteTranscription, unused_replyToVoiceMessage] = getVoiceMessageActions(messenger.isMessageForMe(parsedMessage));
       
       if (quoteTranscription) {
+        const prefixText = '\u{1F5E3}\u{1F4DD}: '; // these are emojis 🗣️📝 (just copy paste to normal windows to see)
         await messenger.sendMessage(ctx, {
           chatId: parsedMessage.chatId,
           kind: "text",
-          body: parsedMessage.body,
+          body: prefixText + parsedMessage.body,
           quoteId: parsedMessage.messageId,
         });
       }
