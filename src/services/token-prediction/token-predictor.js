@@ -91,7 +91,7 @@ async function getMessageIndexUptoMaxTokens(systemMessage, chatMessages, softTok
         }
 
         // If it's the first message being tested, try the hard limit
-        if (startIndex == chatMessage.length && numTokens <= hardTokenLimit) {
+        if (startIndex == chatMessages.length && numTokens <= hardTokenLimit) {
             continue;
         }
 
@@ -103,7 +103,7 @@ async function getMessageIndexUptoMaxTokens(systemMessage, chatMessages, softTok
 
 // @returns A list of messages comprised from systemMessage and last messages of chatMessages that will take leq tokens than maxTokens
 async function getMessagesUptoMaxTokens(ctx, systemMessage, chatMessages, softTokenLimit, hardTokenLimit) {
-    ctx.log(`getMessagesUptoMaxTokens: chatMessages.length=${chatMessages.length}, softTokenLimit=${softTokeniLimit}, hardTokenLimit=${hardTokenLimit}`);
+    ctx.log(`getMessagesUptoMaxTokens: chatMessages.length=${chatMessages.length}, softTokenLimit=${softTokenLimit}, hardTokenLimit=${hardTokenLimit}`);
 
     if (!encoder) {
         throw new Error('encoder is not initialized');
