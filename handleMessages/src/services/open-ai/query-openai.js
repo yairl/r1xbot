@@ -1,6 +1,7 @@
 "use strict";
 const fs = require('fs');
 const { Configuration, OpenAIApi } = require("openai");
+const { performance } = require('perf_hooks');
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
@@ -68,12 +69,14 @@ async function getChatCompletion(ctx, messages) {
 
 
 async function createTranscription(ctx, mp3FilePath) {
+  const t0 = performance.now();
   const transcription = await openai.createTranscription(  
     fs.createReadStream(mp3FilePath),
     process.env.OPENAI_SPEECH_TO_TEXT_MODEL,
   );
+  const timeTaken = (performance.now() - t0).toFixed(0);
 
-  ctx.log(`createTranscription transcription=${transcription.data.text}`);
+  ctx.log(`createTranscription: timeTaken=${timeTaken}ms transcription=${transcription.data.text}`);
   return transcription.data.text;
 }
 
