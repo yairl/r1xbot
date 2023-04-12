@@ -57,6 +57,20 @@ function parseMessage(message) {
 }
 
 async function sendMessage(ctx, attributes) {
+  const response = await sendMessageRaw(ctx, attributes);
+
+  if (response.data.ok) {
+    const message = { message: response.data.result };
+    // TODO ishumsky - fileInfo is outside until added to the DB.
+    const [parsedMessage, fileInfo] = parseMessage(message);
+    ctx.log({ parsedMessage });
+
+    await insertMessage(ctx, parsedMessage);
+    ctx.log(`Message inserted successfully: `, parsedMessage);
+  }
+}
+
+async function sendMessageRaw(ctx, attributes) {
   const { chatId, quoteId, kind, body } = attributes;
 
   if (kind != "text") {
@@ -74,16 +88,9 @@ async function sendMessage(ctx, attributes) {
   );
   //ctx.log(response);
 
-  if (response.data.ok) {
-    const message = { message: response.data.result };
-    // TODO ishumsky - fileInfo is outside until added to the DB.
-    const [parsedMessage, fileInfo] = parseMessage(message);
-    ctx.log({ parsedMessage });
-
-    await insertMessage(ctx, parsedMessage);
-    ctx.log(`Message inserted successfully: `, parsedMessage);
-  }
+  return response;
 }
+
 
 function isMessageForMe(msg) {
   if (msg.chatType == "private") {
@@ -157,6 +164,7 @@ function setTyping(chat_id) {
 module.exports = {
   parseMessage,
   sendMessage,
+  sendMessageRaw,
   isMessageForMe,
   setTyping,
   getVoiceMp3File

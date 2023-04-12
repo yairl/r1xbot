@@ -30,7 +30,7 @@ async function handleIncomingMessage(ctx, event) {
       
       if (quoteTranscription) {
         const prefixText = '\u{1F5E3}\u{1F4DD}: '; // these are emojis 🗣️📝 (just copy paste to normal windows to see)
-        await messenger.sendMessage(ctx, {
+        await messenger.sendMessageRaw(ctx, {
           chatId: parsedMessage.chatId,
           kind: "text",
           body: prefixText + parsedMessage.body,
