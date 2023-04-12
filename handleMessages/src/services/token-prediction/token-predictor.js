@@ -56,7 +56,7 @@ function getMessageTokens(message) {
 }
 
 // @returns {bool, int} Whether to include systemMessage (bool) and first index of chatMessages that'll take leq tokens than maxTokens
-async function getMessageIndexUptoMaxTokens(systemMessage, chatMessages, maxTokens) {
+async function getMessageIndexUptoMaxTokens(systemMessage, chatMessages, softTokenLimit, hardTokenLimit) {
     if (!encoder) {
         throw new Error(`encoder is not initialized`);
     }
@@ -71,7 +71,7 @@ async function getMessageIndexUptoMaxTokens(systemMessage, chatMessages, maxToke
     // add up the system message
     numTokens += getMessageTokens(systemMessage);
 
-    if (numTokens > maxTokens) {
+    if (numTokens > hardTokenLimit) {
         // if already out of tokens, bail
         return [includeSystemMessage, startIndex];
     }
@@ -85,31 +85,38 @@ async function getMessageIndexUptoMaxTokens(systemMessage, chatMessages, maxToke
 
         numTokens += getMessageTokens(message);
 
-        if (numTokens > maxTokens) {
-            // if collected too many tokens then bail.
-            break;
+        // Check the soft limit
+        if (numTokens <= softTokenLimit) {
+            continue;
         }
+
+        // If it's the first message being tested, try the hard limit
+        if (startIndex == chatMessage.length && numTokens <= hardTokenLimit) {
+            continue;
+        }
+
+        break;
     }
 
     return [includeSystemMessage, startIndex];
 }
 
 // @returns A list of messages comprised from systemMessage and last messages of chatMessages that will take leq tokens than maxTokens
-async function getMessagesUptoMaxTokens(ctx, systemMessage, chatMessages, maxTokens) {
-    ctx.log(`getMessagesUptoMaxTokens: chatMessages.length=${chatMessages.length}, maxTokens=${maxTokens}`);
+async function getMessagesUptoMaxTokens(ctx, systemMessage, chatMessages, softTokenLimit, hardTokenLimit) {
+    ctx.log(`getMessagesUptoMaxTokens: chatMessages.length=${chatMessages.length}, softTokenLimit=${softTokeniLimit}, hardTokenLimit=${hardTokenLimit}`);
 
     if (!encoder) {
         throw new Error('encoder is not initialized');
     }
 
     // get indication which messages to include
-    const [includeSystemMessage, startIndex] = await getMessageIndexUptoMaxTokens(systemMessage, chatMessages, maxTokens);
+    const [includeSystemMessage, startIndex] = await getMessageIndexUptoMaxTokens(systemMessage, chatMessages, softTokenLimit, hardTokenLimit);
     
     // initialize result
     const result = [];
 
-    // bail early if even SystemMessage cannot fit system
-    if (includeSystemMessage == false) {
+    // Bail early if can't fit the system message, or even a single user message.
+    if (includeSystemMessage == false || startIndex == chatMessages.length) {
         return result;
     }
 
