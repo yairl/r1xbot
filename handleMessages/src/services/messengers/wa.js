@@ -1,4 +1,3 @@
-const logger = require("../../utils/logger");
 function parseMessage(message) {
   const source = "wa";
   const messageTimestamp = message.data.time * 1e3;
@@ -12,7 +11,7 @@ function parseMessage(message) {
   const kind = "text";
   const body = message.data.body;
 
-  return {
+  return [{
     source,
     messageTimestamp,
     chatType,
@@ -24,7 +23,9 @@ function parseMessage(message) {
     kind,
     body,
     rawSource: message
-  };
+  }, {
+    // TODO ishumsky should shloud have fileInfo
+  }];
 }
 
 async function sendMessage(ctx, attributes) {
@@ -46,7 +47,7 @@ async function sendMessage(ctx, attributes) {
     `https://api.ultramsg.com/instance${process.env.WHATSAPP_INSTANCE}/messages/chat`,
     args
   );
-  logger.info(`[${ctx}] `, response);
+  ctx.log(response);
 }
 
 function isMessageForMe(msg) {

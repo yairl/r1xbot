@@ -21,6 +21,7 @@
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.30.0",
     "sqs-consumer": "^7.0.3",
+    "stability-client": "^1.8.0",
     "winston": "^3.8.2",
     "winston-daily-rotate-file": "^4.7.1"
   },

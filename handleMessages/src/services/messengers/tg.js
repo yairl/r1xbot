@@ -1,9 +1,9 @@
 "use strict"
-const logger = require("../../utils/logger");
 const downloader = require("../../utils/download-services");
 const mediaConverter = require("../../utils/media-converters");
 const fileServices = require("../../utils/file-services");
 const { insertMessage } = require("../messages/messages-service");
+const axios = require("axios");
 
 class MessageKindE {
   static TEXT = 'text';
@@ -37,6 +37,7 @@ function parseMessage(message) {
   const kind = getMessageKind(message);
   const body = message.text;
   const fileId = (kind == MessageKindE.VOICE) ? message.voice.file_id : undefined;
+  const fileUniqueId = (kind == MessageKindE.VOICE) ? message.voice.file_unique_id : undefined;
 
   return [{
     source,
@@ -52,7 +53,7 @@ function parseMessage(message) {
     rawSource: message
   },
   // TODO ishumsky - fileId is outside until added to the DB.
-  fileId];
+  {fileId, fileUniqueId}];
 }
 
 async function sendMessage(ctx, attributes) {
@@ -61,8 +62,6 @@ async function sendMessage(ctx, attributes) {
   if (kind != "text") {
     return;
   }
-
-  const axios = require("axios");
 
   var args = { chat_id: chatId, text: body };
   if (quoteId) {
@@ -73,16 +72,16 @@ async function sendMessage(ctx, attributes) {
     `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
     args
   );
-  //logger.info(`[${ctx}] `, response);
+  //ctx.log(response);
 
   if (response.data.ok) {
     const message = { message: response.data.result };
-    // TODO ishumsky - fileId is outside until added to the DB.
-    const [parsedMessage, fileId] = parseMessage(message);
-    logger.info(`[${ctx}] `, { parsedMessage });
+    // TODO ishumsky - fileInfo is outside until added to the DB.
+    const [parsedMessage, fileInfo] = parseMessage(message);
+    ctx.log({ parsedMessage });
 
     await insertMessage(ctx, parsedMessage);
-    logger.info(`[${ctx}] Sent message inserted successfully: `, parsedMessage);
+    ctx.log(`Message inserted successfully: `, parsedMessage);
   }
 }
 
@@ -98,10 +97,10 @@ function isMessageForMe(msg) {
   return false;
 }
 
-async function getVoiceMp3File(ctx, tmpFolderBase, fileId) {
-  const tmpFolder = tmpFolderBase + 'tg/';
-  const url = await getDownloadUrl(ctx, fileId);
-  const [oggFilePath, mp3FilePath] = getAudioFilePaths(ctx, tmpFolder, fileId);
+async function getVoiceMp3File(ctx, tmpFolderBase, parsedMessage, fileInfo) {
+  const tmpFolder = tmpFolderBase + '/tg';
+  const url = await getDownloadUrl(ctx, fileInfo.fileId);
+  const [oggFilePath, mp3FilePath] = getAudioFilePaths(ctx, tmpFolder, parsedMessage.chatId, fileInfo);
   let isDownloadSuccessful = false;
   try {
     isDownloadSuccessful = await downloader.downloadStreamFile(ctx, url, oggFilePath);
@@ -129,27 +128,36 @@ async function getDownloadUrl(ctx, fileId) {
   );
 
   if (response.data.ok == false) {
-    logger.info(`[${ctx}] getDownloadUrl failed. response=`, response);
+    ctx.log('getDownloadUrl failed. response=', response);
   }
 
   const remoteFilePath = response.data.result.file_path;
   const downloadUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${remoteFilePath}`;
 
-  logger.info(`[${ctx}] getDownloadUrl: downloadUrl=${downloadUrl}`);
+  ctx.log(`getDownloadUrl: downloadUrl=${downloadUrl}`);
   return downloadUrl;
 }
 
-function getAudioFilePaths(ctx, tmpFolder, fileId) {
-  const oggFilePath = tmpFolder + fileId + `.ogg`;
-  const mp3FilePath = tmpFolder + fileId + `.mp3`;
+function getAudioFilePaths(ctx, tmpFolder, chatId, fileInfo) {
+  const filePathName = `${tmpFolder}/${chatId}_${fileInfo.fileUniqueId}_${fileInfo.fileId}`;
+  const oggFilePath = filePathName + '.ogg';
+  const mp3FilePath = filePathName + '.mp3';
 
-  logger.info(`[${ctx}] getAudioFilePaths: oggFilePath=${oggFilePath}, mp3FilePath=${mp3FilePath}`);
+  ctx.log(`getAudioFilePaths: oggFilePath=${oggFilePath}, mp3FilePath=${mp3FilePath}`);
   return [oggFilePath, mp3FilePath];
+}
+
+function setTyping(chat_id) {
+  axios.post(
+    `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendChatAction`,
+    { chat_id : chat_id, action : 'typing' } 
+  );
 }
 
 module.exports = {
   parseMessage,
   sendMessage,
   isMessageForMe,
+  setTyping,
   getVoiceMp3File
 };

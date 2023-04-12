@@ -1,16 +1,15 @@
 "use strict";
-const logger = require("../utils/logger");
 const fs = require('fs');
 
 async function deleteFile(ctx, filePath) {
-  logger.info(`[${ctx}] deleteFile filePath=${filePath}`);
+  ctx.log(`deleteFile filePath=${filePath}`);
   return new Promise((resolve, reject) => {
     fs.unlink(filePath, (err) => {
       if (err) {
         reject(err);
         return;
       }
-      logger.info(`[${ctx}] deleteFile succeeded`);
+      ctx.log(`deleteFile succeeded`);
       resolve();
     });
   });

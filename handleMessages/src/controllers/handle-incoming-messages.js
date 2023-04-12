@@ -1,10 +1,7 @@
-const logger = require("../utils/logger");
+"use strict"
 const { getChatCompletion, createTranscription } = require("../services/open-ai/query-openai");
 const db = require("../db/models");
-const {
-  insertMessage,
-  getMessageHistory
-} = require("../services/messages/messages-service");
+const ms = require("../services/messages/messages-service");
 const messengers = require("../services/messengers");
 const fileServices = require("../utils/file-services");
 
@@ -20,13 +17,13 @@ async function handleIncomingMessage(ctx, event) {
     // 1. Parse message and insert to database
     const parsedEvent = JSON.parse(event);
     const messenger = messengers[parsedEvent.source];
-    // TODO ishumsky - fileId is outside until added to the DB
-    const [parsedMessage, fileId] = messenger.parseMessage(parsedEvent.event);
+    // TODO ishumsky - fileInfo is outside until added to the DB
+    const [parsedMessage, fileInfo] = messenger.parseMessage(parsedEvent.event);
 
     if (parsedMessage.kind == 'voice') {
-      parsedMessage.body = await getTranscript(ctx, messenger, fileId);
+      parsedMessage.body = await getTranscript(ctx, messenger, parsedMessage, fileInfo);
       
-      [quoteTranscription, unused_replyToVoiceMessage] = getVoiceMessageActions(messenger.isMessageForMe(parsedMessage));
+      const [quoteTranscription, unused_replyToVoiceMessage] = getVoiceMessageActions(messenger.isMessageForMe(parsedMessage));
       
       if (quoteTranscription) {
         const prefixText = '\u{1F5E3}\u{1F4DD}: '; // these are emojis 🗣️📝 (just copy paste to normal windows to see)
@@ -39,7 +36,7 @@ async function handleIncomingMessage(ctx, event) {
       }
     }
 
-    const message = await insertMessage(ctx, parsedMessage);
+    const message = await ms.insertMessage(ctx, parsedMessage);
 
     // If this is a callback notifying us of a message we sent, we're done processing and can exit.
     if (message.isSentByMe || message.body == null) {
@@ -52,19 +49,23 @@ async function handleIncomingMessage(ctx, event) {
     }
 
     // 2. Get chat history, and send an intro message.
-    const messageHistory = await getMessageHistory(ctx, message);
-    logger.info(`[${ctx}] message history pulled.`);
+    messenger.setTyping(parsedMessage.chatId);
+
+    const messageHistory = await ms.getMessageHistory(ctx, message);
+    ctx.log('message history pulled.');
 
     if (messageHistory.length <= 1) {
-      logger.info(`[${ctx}] sending intro message.`);
+      ctx.log('sending intro message.');
       await sendIntroMessage(ctx, messenger, parsedMessage);
       return ;
     }  
 
     // 3. Generate reply
-    logger.info(`[${ctx}] calling getChatCompletion...`);
+    messenger.setTyping(parsedMessage.chatId);
+
+    ctx.log('calling getChatCompletion...');
     const replyMessage = await getChatCompletion(ctx, messageHistory);
-    logger.info(`[${ctx}] getChatCompletion done, result is `, { replyMessage });
+    ctx.log('getChatCompletion done, result is ', { replyMessage });
 
     // 4. Send reply to user
     await messenger.sendMessage(ctx, {
@@ -74,8 +75,8 @@ async function handleIncomingMessage(ctx, event) {
     });
     return `replied: ${replyMessage}`;
   } catch (error) {
-    logger.info(`[${ctx}] `, error.stack);
-    throw new Error(`[${ctx}] Message processing failed.`);
+    ctx.log('Message processing failed: ', error.stack);
+    throw new Error(`Message processing failed.`);
   }
 }
 
@@ -109,11 +110,11 @@ And of course, read my privacy policy at https://r1x.ai/privacy.`
   });
 }
 
-async function getTranscript(ctx, messenger, fileId) {
-  const tmpFolderBase = './tmp/';
+async function getTranscript(ctx, messenger, parsedMessage, fileInfo) {
+  const tmpFolderBase = './tmp';
   let mp3FilePath = undefined;
   try {
-    mp3FilePath = await messenger.getVoiceMp3File(ctx, tmpFolderBase, fileId);
+    mp3FilePath = await messenger.getVoiceMp3File(ctx, tmpFolderBase, parsedMessage, fileInfo);
     const transcription = await createTranscription(ctx, mp3FilePath);
 
     return transcription;

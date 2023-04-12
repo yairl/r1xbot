@@ -1,5 +1,4 @@
 "use strict";
-const logger = require("../utils/logger");
 const fs = require('fs');
 const pathLib = require('path');
 const axios = require("axios");
@@ -23,7 +22,7 @@ async function downloadStreamFile(ctx, url, path) {
 
   return new Promise((resolve, reject) => {
     response.data.on('end', () => {
-      logger.info(`[${ctx}] downloadFile succeeded`);
+      ctx.log(`downloadFile succeeded`);
       isSuccessful = true;
       resolve();
     });
