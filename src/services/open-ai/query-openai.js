@@ -36,9 +36,15 @@ async function getChatCompletion(ctx, messages) {
     parsedMessages.push(convertMessageToChatFormat(message));
   }
 
-  const maxTokens = 2048;
+  const softTokenLimit = 2048;
+  const hardTokenLimit = 4000;
   // get list of messages that will consume upto maxToken. This includes also the system message.
-  const messagesUptoMaxTokens = await tokenPredictor.getMessagesUptoMaxTokens(ctx, systemMessage, parsedMessages, maxTokens);
+  const messagesUptoMaxTokens = await tokenPredictor.getMessagesUptoMaxTokens(ctx, systemMessage, parsedMessages, softTokenLimit, hardTokenLimit);
+
+  if (messagesUptoMaxTokens.length == 0) {
+    ctx.log('Latest user message is longer than hardTokenLimit, bailing out.');
+    return 'Your message is longer than I can understand. Can you cut it down a bit?'
+  }
 
   ctx.log('getChatCompletion messagesUptoMaxTokens: ', messagesUptoMaxTokens);
 
