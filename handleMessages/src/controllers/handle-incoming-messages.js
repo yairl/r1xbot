@@ -20,7 +20,10 @@ async function handleIncomingMessage(ctx, event) {
     // TODO ishumsky - fileInfo is outside until added to the DB
     const [parsedMessage, fileInfo] = messenger.parseMessage(parsedEvent.event);
 
+    // 2. If this is a voice message, then transcribe it
     if (parsedMessage.kind == 'voice') {
+      messenger.setTyping(parsedMessage.chatId);
+      
       parsedMessage.body = await getTranscript(ctx, messenger, parsedMessage, fileInfo);
       
       const [quoteTranscription, unused_replyToVoiceMessage] = getVoiceMessageActions(messenger.isMessageForMe(parsedMessage));
