@@ -80,6 +80,7 @@ async function sendMessageRaw(ctx, attributes) {
   var args = { chat_id: chatId, text: body };
   if (quoteId) {
     args.reply_to_message_id = quoteId;
+    args.allow_sending_without_reply = true;
   }
 
   const response = await axios.post(
