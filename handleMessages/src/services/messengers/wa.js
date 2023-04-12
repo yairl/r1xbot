@@ -11,7 +11,7 @@ function parseMessage(message) {
   const kind = "text";
   const body = message.data.body;
 
-  return {
+  return [{
     source,
     messageTimestamp,
     chatType,
@@ -23,7 +23,9 @@ function parseMessage(message) {
     kind,
     body,
     rawSource: message
-  };
+  }, {
+    // TODO ishumsky should shloud have fileInfo
+  }];
 }
 
 async function sendMessage(ctx, attributes) {

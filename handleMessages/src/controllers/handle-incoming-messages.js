@@ -1,7 +1,9 @@
-const { getChatCompletion } = require("../services/open-ai/query-openai");
+"use strict"
+const { getChatCompletion, createTranscription } = require("../services/open-ai/query-openai");
 const db = require("../db/models");
 const ms = require("../services/messages/messages-service");
 const messengers = require("../services/messengers");
+const fileServices = require("../utils/file-services");
 
 // Handle incoming message from ingress SQS queue.
 //
@@ -15,7 +17,27 @@ async function handleIncomingMessage(ctx, event) {
     // 1. Parse message and insert to database
     const parsedEvent = JSON.parse(event);
     const messenger = messengers[parsedEvent.source];
-    const parsedMessage = messenger.parseMessage(parsedEvent.event);
+    // TODO ishumsky - fileInfo is outside until added to the DB
+    const [parsedMessage, fileInfo] = messenger.parseMessage(parsedEvent.event);
+
+    // 2. If this is a voice message, then transcribe it
+    if (parsedMessage.kind == 'voice') {
+      messenger.setTyping(parsedMessage.chatId);
+      
+      parsedMessage.body = await getTranscript(ctx, messenger, parsedMessage, fileInfo);
+      
+      const [quoteTranscription, unused_replyToVoiceMessage] = getVoiceMessageActions(messenger.isMessageForMe(parsedMessage));
+      
+      if (quoteTranscription) {
+        const prefixText = '\u{1F5E3}\u{1F4DD}: '; // these are emojis 🗣️📝 (just copy paste to normal windows to see)
+        await messenger.sendMessageRaw(ctx, {
+          chatId: parsedMessage.chatId,
+          kind: "text",
+          body: prefixText + parsedMessage.body,
+          quoteId: parsedMessage.messageId,
+        });
+      }
+    }
 
     const message = await ms.insertMessage(ctx, parsedMessage);
 
@@ -89,6 +111,30 @@ And of course, read my privacy policy at https://r1x.ai/privacy.`
     kind: "text",
     body: introMessageOverview
   });
+}
+
+async function getTranscript(ctx, messenger, parsedMessage, fileInfo) {
+  const tmpFolderBase = './tmp';
+  let mp3FilePath = undefined;
+  try {
+    mp3FilePath = await messenger.getVoiceMp3File(ctx, tmpFolderBase, parsedMessage, fileInfo);
+    const transcription = await createTranscription(ctx, mp3FilePath);
+
+    return transcription;
+
+  } finally {
+    // this code assumes that if mp3FilePath is defined, then it exists, and should be deleted no matter what
+    if (mp3FilePath) {
+      fileServices.deleteFile(ctx, mp3FilePath);
+    }
+  }
+}
+
+function getVoiceMessageActions(isMessageToMe) {
+  // quote transcription only in group chats
+  const quoteTranscription = true;
+  const unused_replyToVoiceMessage = undefined;
+  return [quoteTranscription, unused_replyToVoiceMessage];
 }
 
 module.exports = {
