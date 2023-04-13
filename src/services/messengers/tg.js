@@ -147,7 +147,10 @@ async function getDownloadUrl(ctx, fileId) {
 }
 
 function getAudioFilePaths(ctx, tmpFolder, chatId, fileInfo) {
-  const filePathName = `${tmpFolder}/${chatId}_${fileInfo.fileUniqueId}_${fileInfo.fileId}`;
+  const timestamp = Date.now().toString(36); //time since epoch in 36-base [a-z0_9], e.g., 9hq6gcf
+  const random = Math.random().toString(36).slice(2, 2+10); // Math.random().toString(36) returns 0.a9v7987asd... so take 10 chars after "0."
+
+  const filePathName = `${tmpFolder}/${chatId}_${fileInfo.fileUniqueId}_${timestamp}_${random}`;
   const oggFilePath = filePathName + '.ogg';
   const mp3FilePath = filePathName + '.mp3';
 
