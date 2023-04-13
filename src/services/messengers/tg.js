@@ -4,7 +4,6 @@ const mediaConverter = require("../../utils/media-converters");
 const fileServices = require("../../utils/file-services");
 const { insertMessage } = require("../messages/messages-service");
 const axios = require("axios");
-const tmp = require('tmp');
 
 class MessageKindE {
   static TEXT = 'text';
@@ -147,11 +146,8 @@ async function getDownloadUrl(ctx, fileId) {
 }
 
 function getAudioFilePaths(ctx, chatId, fileInfo) {
-  const prefix = `tmp_${chatId}_${fileInfo.fileUniqueId}`;
-  const dir = 'r1x/tg';
-  const options = {dir, prefix};
-  const filePathName = tmp.tmpNameSync(options)
-
+  const tempDirPath = fileServices.makeTempDirName(`r1x/tg/${chatId}_`);
+  const filePathName = tempDirPath + '/audio';
   const oggFilePath = filePathName + '.ogg';
   const mp3FilePath = filePathName + '.mp3';
 
