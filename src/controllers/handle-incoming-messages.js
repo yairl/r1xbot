@@ -84,7 +84,7 @@ async function handleIncomingMessage(ctx, event) {
 }
 
 async function sendIntroMessage(ctx, messenger, parsedMessage) {
-  introMessageLegal = `Robot 1-X at your service!
+  const introMessageLegal = `Robot 1-X at your service!
 
 First, be aware that while I always do my best to help, I am not a professional doctor, psychologist or banker.
 Always check my suggestions with a professional.
@@ -93,7 +93,7 @@ If you're under 13, ask your parents for permission before you continue talking 
 
 And of course, read my privacy policy at https://r1x.ai/privacy.`
 
-  introMessageOverview = `Phew, now that that's out of the way, here are some things you can ask me for:
+  const introMessageOverview = `Phew, now that that's out of the way, here are some things you can ask me for:
 
 - Write a bedtime story about Abigail and Jonathan, two superheroes who live next to a river.
 - Plan a 14-day road trip from Milan to Minsk. Include detailed suggestions about where to spend each day.
