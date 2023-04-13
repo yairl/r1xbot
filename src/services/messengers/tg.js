@@ -4,6 +4,7 @@ const mediaConverter = require("../../utils/media-converters");
 const fileServices = require("../../utils/file-services");
 const { insertMessage } = require("../messages/messages-service");
 const axios = require("axios");
+const tmp = require('tmp');
 
 class MessageKindE {
   static TEXT = 'text';
@@ -105,10 +106,9 @@ function isMessageForMe(msg) {
   return false;
 }
 
-async function getVoiceMp3File(ctx, tmpFolderBase, parsedMessage, fileInfo) {
-  const tmpFolder = tmpFolderBase + '/tg';
+async function getVoiceMp3File(ctx, parsedMessage, fileInfo) {
   const url = await getDownloadUrl(ctx, fileInfo.fileId);
-  const [oggFilePath, mp3FilePath] = getAudioFilePaths(ctx, tmpFolder, parsedMessage.chatId, fileInfo);
+  const [oggFilePath, mp3FilePath] = getAudioFilePaths(ctx, parsedMessage.chatId, fileInfo);
   let isDownloadSuccessful = false;
   try {
     isDownloadSuccessful = await downloader.downloadStreamFile(ctx, url, oggFilePath);
@@ -146,11 +146,12 @@ async function getDownloadUrl(ctx, fileId) {
   return downloadUrl;
 }
 
-function getAudioFilePaths(ctx, tmpFolder, chatId, fileInfo) {
-  const timestamp = Date.now().toString(36); //time since epoch in 36-base [a-z0_9], e.g., 9hq6gcf
-  const random = Math.random().toString(36).slice(2, 2+10); // Math.random().toString(36) returns 0.a9v7987asd... so take 10 chars after "0."
+function getAudioFilePaths(ctx, chatId, fileInfo) {
+  const prefix = `tmp_${chatId}_${fileInfo.fileUniqueId}`;
+  const dir = 'r1x/tg';
+  const options = {dir, prefix};
+  const filePathName = tmp.tmpNameSync(options)
 
-  const filePathName = `${tmpFolder}/${chatId}_${fileInfo.fileUniqueId}_${timestamp}_${random}`;
   const oggFilePath = filePathName + '.ogg';
   const mp3FilePath = filePathName + '.mp3';
 

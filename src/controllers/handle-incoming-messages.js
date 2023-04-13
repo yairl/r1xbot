@@ -118,10 +118,9 @@ How can I help?`
 }
 
 async function getTranscript(ctx, messenger, parsedMessage, fileInfo) {
-  const tmpFolderBase = './tmp';
   let mp3FilePath = undefined;
   try {
-    mp3FilePath = await messenger.getVoiceMp3File(ctx, tmpFolderBase, parsedMessage, fileInfo);
+    mp3FilePath = await messenger.getVoiceMp3File(ctx, parsedMessage, fileInfo);
     const transcription = await createTranscription(ctx, mp3FilePath);
 
     return transcription;
