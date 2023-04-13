@@ -1,5 +1,7 @@
 "use strict";
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 async function deleteFileUnsafe(ctx, filePath) {
   return new Promise((resolve, reject) => {
@@ -32,7 +34,22 @@ function fileExists(filePath) {
   }
 }
 
+function makeTempDirName(prefix) {
+  const tmpRoot = process.env.TMPDIR || os.tmpdir();
+
+  const prefixPath = tmpRoot + path.sep + path.dirname(prefix);
+  if (!fs.existsSync(prefixPath)) {
+    fs.mkdirSync(prefixPath, { recursive: true });
+  }
+
+  const fullTempDirPathBase = path.join(tmpRoot, prefix);  
+  const fullTempDirPath = fs.mkdtempSync(fullTempDirPathBase);
+  
+  return fullTempDirPath;
+}
+
 module.exports = {
     deleteFile,
-    fileExists
+    fileExists,
+    makeTempDirName
 };
