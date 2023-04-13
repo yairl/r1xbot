@@ -98,7 +98,11 @@ And of course, read my privacy policy at https://r1x.ai/privacy.`
 - Write a bedtime story about Abigail and Jonathan, two superheroes who live next to a river.
 - Plan a 14-day road trip from Milan to Minsk. Include detailed suggestions about where to spend each day.
 - Rewrite the following text with spell-checking and punctuation: pleez send me all the docooments that is need for tomorrow flight im waiting for dem.
-- Please summarize the following text: <copy some text/email here>.`
+- Please summarize the following text: <copy some text/email here>.
+
+And, you can send me an audio message instead of typing!
+
+How can I help?`
 
   await messenger.sendMessage(ctx, {
     chatId: parsedMessage.chatId,
