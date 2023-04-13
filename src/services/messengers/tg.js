@@ -105,10 +105,9 @@ function isMessageForMe(msg) {
   return false;
 }
 
-async function getVoiceMp3File(ctx, tmpFolderBase, parsedMessage, fileInfo) {
-  const tmpFolder = tmpFolderBase + '/tg';
+async function getVoiceMp3File(ctx, parsedMessage, fileInfo) {
   const url = await getDownloadUrl(ctx, fileInfo.fileId);
-  const [oggFilePath, mp3FilePath] = getAudioFilePaths(ctx, tmpFolder, parsedMessage.chatId, fileInfo);
+  const [oggFilePath, mp3FilePath] = getAudioFilePaths(ctx, parsedMessage.chatId, fileInfo);
   let isDownloadSuccessful = false;
   try {
     isDownloadSuccessful = await downloader.downloadStreamFile(ctx, url, oggFilePath);
@@ -146,8 +145,9 @@ async function getDownloadUrl(ctx, fileId) {
   return downloadUrl;
 }
 
-function getAudioFilePaths(ctx, tmpFolder, chatId, fileInfo) {
-  const filePathName = `${tmpFolder}/${chatId}_${fileInfo.fileUniqueId}_${fileInfo.fileId}`;
+function getAudioFilePaths(ctx, chatId, fileInfo) {
+  const tempDirPath = fileServices.makeTempDirName(`r1x/tg/${chatId}_`);
+  const filePathName = tempDirPath + '/audio';
   const oggFilePath = filePathName + '.ogg';
   const mp3FilePath = filePathName + '.mp3';
 
