@@ -102,6 +102,11 @@ function isMessageForMe(msg) {
     return true;
   }
 
+  if ("reply_to_message" in msg.rawSource &&
+      msg.rawSource.reply_to_message.from.id == process.env.TELEGRAM_SENDER_ID) {
+    return true;
+  }
+
   return false;
 }
 
