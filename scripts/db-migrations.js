@@ -34,6 +34,7 @@
       })
     ]);
   } catch (err) {
+    console.log(err);
     process.exit(err.code);
   }
 })();
