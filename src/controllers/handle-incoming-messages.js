@@ -17,11 +17,11 @@ async function handleIncomingMessage(ctx, event) {
 
   try {
     await handleIncomingMessageCore(ctx, event, inFlight);
-    inFlight.working = false;
   } catch (error) {
-    inFlight.working = false;
     ctx.log('Message processing failed: ', error.stack);
     throw new Error(`Message processing failed.`);
+  } finally {
+    inFlight.working = false;
   }
 }
 
