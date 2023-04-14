@@ -13,74 +13,87 @@ const fileServices = require("../utils/file-services");
 // 4. Send reply to user.
 
 async function handleIncomingMessage(ctx, event) {
+  let inFlight = { working : true };
+
   try {
-    // 1. Parse message and insert to database
-    const parsedEvent = JSON.parse(event);
-    const messenger = messengers[parsedEvent.source];
-    // TODO ishumsky - fileInfo is outside until added to the DB
-    const [parsedMessage, fileInfo] = messenger.parseMessage(parsedEvent.event);
-
-    // 2. If this is a voice message, then transcribe it
-    if (parsedMessage.kind == 'voice') {
-      messenger.setTyping(parsedMessage.chatId);
-      
-      parsedMessage.body = await getTranscript(ctx, messenger, parsedMessage, fileInfo);
-      
-      const [quoteTranscription, unused_replyToVoiceMessage] = getVoiceMessageActions(messenger.isMessageForMe(parsedMessage));
-      
-      if (quoteTranscription) {
-        const prefixText = '\u{1F5E3}\u{1F4DD}: '; // these are emojis 🗣️📝 (just copy paste to normal windows to see)
-        await messenger.sendMessageRaw(ctx, {
-          chatId: parsedMessage.chatId,
-          kind: "text",
-          body: prefixText + parsedMessage.body,
-          quoteId: parsedMessage.messageId,
-        });
-      }
-    }
-
-    const message = await ms.insertMessage(ctx, parsedMessage);
-
-    // If this is a callback notifying us of a message we sent, we're done processing and can exit.
-    if (message.isSentByMe || message.body == null) {
-      return;
-    }
-
-    // If this is a group chat, only reply if it's direct at us.
-    if (!messenger.isMessageForMe(message)) {
-      return;
-    }
-
-    // 2. Get chat history, and send an intro message.
-    messenger.setTyping(parsedMessage.chatId);
-
-    const messageHistory = await ms.getMessageHistory(ctx, message);
-    ctx.log('message history pulled.');
-
-    if (messageHistory.length <= 1) {
-      ctx.log('sending intro message.');
-      await sendIntroMessage(ctx, messenger, parsedMessage);
-      return ;
-    }  
-
-    // 3. Generate reply
-    messenger.setTyping(parsedMessage.chatId);
-
-    ctx.log('calling getChatCompletion...');
-    const replyMessage = await getChatCompletion(ctx, messageHistory);
-    ctx.log('getChatCompletion done, result is ', { replyMessage });
-
-    // 4. Send reply to user
-    await messenger.sendMessage(ctx, {
-      chatId: parsedMessage.chatId,
-      kind: "text",
-      body: replyMessage
-    });
-    return `replied: ${replyMessage}`;
+    await handleIncomingMessageCore(ctx, event, inFlight);
+    inFlight.working = false;
   } catch (error) {
+    inFlight.working = false;
     ctx.log('Message processing failed: ', error.stack);
     throw new Error(`Message processing failed.`);
   }
+}
+
+async function handleIncomingMessageCore(ctx, event, inFlight) {
+  // 1. Parse message and insert to database
+  const parsedEvent = JSON.parse(event);
+  const messenger = messengers[parsedEvent.source];
+  // TODO ishumsky - fileInfo is outside until added to the DB
+  const [parsedMessage, fileInfo] = messenger.parseMessage(parsedEvent.event);
+
+  let isTyping = false;
+
+  // 2. If this is a voice message, then transcribe it
+  if (parsedMessage.kind == 'voice') {
+    messenger.setTyping(parsedMessage.chatId, inFlight);
+    isTyping = true;
+      
+    parsedMessage.body = await getTranscript(ctx, messenger, parsedMessage, fileInfo);
+      
+    const [quoteTranscription, unused_replyToVoiceMessage] = getVoiceMessageActions(messenger.isMessageForMe(parsedMessage));
+      
+    if (quoteTranscription) {
+      const prefixText = '\u{1F5E3}\u{1F4DD}: '; // these are emojis 🗣️📝 (just copy paste to normal windows to see)
+      await messenger.sendMessageRaw(ctx, {
+        chatId: parsedMessage.chatId,
+        kind: "text",
+        body: prefixText + parsedMessage.body,
+        quoteId: parsedMessage.messageId,
+      });
+    }
+  }
+
+  const message = await ms.insertMessage(ctx, parsedMessage);
+
+  // If this is a callback notifying us of a message we sent, we're done processing and can exit.
+  if (message.isSentByMe || message.body == null) {
+    return;
+  }
+
+  // If this is a group chat, only reply if it's direct at us.
+  if (!messenger.isMessageForMe(message)) {
+    return;
+  }
+
+  // 2. Get chat history, and send an intro message.
+  if (! isTyping) {
+    messenger.setTyping(parsedMessage.chatId, inFlight);
+    isTyping = true;
+  }
+
+  const messageHistory = await ms.getMessageHistory(ctx, message);
+  ctx.log('message history pulled.');
+
+  if (messageHistory.length <= 1) {
+    ctx.log('sending intro message.');
+    await sendIntroMessage(ctx, messenger, parsedMessage);
+    return ;
+  }  
+
+  // 3. Generate reply
+  ctx.log('calling getChatCompletion...');
+  const replyMessage = await getChatCompletion(ctx, messageHistory);
+  ctx.log('getChatCompletion done, result is ', { replyMessage });
+
+  // 4. Send reply to user
+  await messenger.sendMessage(ctx, {
+    chatId: parsedMessage.chatId,
+    kind: "text",
+    body: replyMessage
+  });
+
+  return `replied: ${replyMessage}`;
 }
 
 async function sendIntroMessage(ctx, messenger, parsedMessage) {
