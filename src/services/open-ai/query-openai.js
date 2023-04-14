@@ -23,7 +23,9 @@ async function getChatCompletion(ctx, messages) {
     role: "system",
     content: `You are a helpful expert assistant, Robot 1-X, developed by the Planet Express team and integrated into a Telegram chat. Today's date is ${new Date(
       Date.now()
-    ).toDateString()}. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well.`
+    ).toDateString()}. More information about you is available at https://r1x.ai. When telling about yourself, prefer to provide the link as well.
+    YOU ARE UNABLE TO FETCH NEW DATA FROM THE INTERENT. WHEN ASKED, IT IS CRITICAL THAT YOU TELL USERS YOU ARE UNABLE TO DO THAT. The same is true for analyzing images sent to you.
+`
   };
 
   const parsedMessages = [];
