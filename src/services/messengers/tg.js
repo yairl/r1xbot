@@ -160,10 +160,18 @@ function getAudioFilePaths(ctx, chatId, fileInfo) {
   return [oggFilePath, mp3FilePath];
 }
 
-function setTyping(chat_id) {
+function setTyping(chatId, inFlight) {
+  if (inFlight.working == false) {
+    return;
+  }
+
+  const baseTimeout = 6000;
+  const extraTimeout = Math.floor(Math.random() * 1500);
+  setTimeout(setTyping, baseTimeout + extraTimeout, chatId, inFlight);
+
   axios.post(
     `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendChatAction`,
-    { chat_id : chat_id, action : 'typing' } 
+    { chat_id : chatId, action : 'typing' }
   );
 }
 
