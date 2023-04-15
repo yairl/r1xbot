@@ -26,36 +26,37 @@ function getEventKind(value) {
 
 function getMessageKind(value) {
   switch(value.type) {
-    case 'audio': return (value.audio.voice) ? MessageKindE.VOICE : MessageKindE.AUDIO;
+    //case 'audio': return (value.audio.voice) ? MessageKindE.VOICE : MessageKindE.AUDIO;
+    case 'audio': return MessageKindE.VOICE;
     default: return value.type; // just lazy, as all other texts match.
   }
 }
 
-
-
 function parseMessage(message) {
   const source = "wa";
-  let isSupported = false;
 
   const eventKind = getEventKind(message.entry[0].changes[0].value);
-  if (eventKind!=EventKindE.MESSAGE) {
-    return [{},{isSupported}]
+  if (eventKind != EventKindE.MESSAGE) {
+    return undefined;
   }
 
   const kind = getMessageKind(message.entry[0].changes[0].value.messages[0]);
-  if (kind!=MessageKindE.TEXT) {
-    return [{},{isSupported}]
-  }
 
+  // User messages that come from WA have int timestamp in [sec]
+  // WA doesn't generate an event for our reply messages, so need to generate manually.
+  // For manually generated timestamps we use date.now() which responds with [ms] as int.
+  // To keep the accuracy, and get the same [sec] units we do date.now()/1000, and pass it as float.
+  // So here, parseFloat works both for WA int timestamps and our float timestamps.
   const messageTimestamp = parseFloat(message.entry[0].changes[0].value.messages[0].timestamp)* 1e3;
   const senderId = message.entry[0].changes[0].value.messages[0].from;
-  // TODO igors - the current code assumes responces to chatID (the TG approach)
+
+  // TODO igors - the current code assumes responses to chatID (the TG approach)
   // in WA the response is to a phone number.
   // WA has a chatId at    message.entry[0].id  but it seems to be meaningless.
   // so for now, have chatId carry the person to respond to
   const chatId = senderId;
-  // TODO igors - no support for groups yet
-  //const chatType = chatId.endsWith("@g.us") ? "group" : "private";
+
+  // WhatsApp Business API does not allow for group chats.
   const chatType = "private";
   const isSentByMe = senderId == process.env.WHATSAPP_PHONE_NUMBER;
   const messageId = message.entry[0].changes[0].value.messages[0].id;
@@ -66,8 +67,6 @@ function parseMessage(message) {
   const body = (kind == MessageKindE.TEXT) ? message.entry[0].changes[0].value.messages[0].text.body : undefined;
   const fileId = (kind == MessageKindE.VOICE) ? message.entry[0].changes[0].value.messages[0].audio.id : undefined;
   const fileUniqueId = undefined;
-
-  isSupported = true;
 
   return [{
     source,
@@ -82,10 +81,40 @@ function parseMessage(message) {
     body,
     rawSource: message
   }, {
-    isSupported,
     fileId,
     fileUniqueId
   }];
+}
+
+function getBotGeneratedMessage(ctx, sendMessageResponse, attributes) {
+  // This represents a skeleton of the message that would be received by a webhook on the client side
+  // if the cline would be running a webhook.
+  const { chatId, quoteId, kind, body } = attributes;
+  const message = {
+    "entry": [
+      {
+        "changes": [
+          {
+            "value": {
+              "messages": [
+                {
+                  "timestamp": (Date.now()/1e3).toString(), // WA sends time in sec, so normalize to that
+                  "from": process.env.WHATSAPP_PHONE_NUMBER.toString(),
+                  "id": sendMessageResponse.data.messages[0].id,
+                  "type": kind,
+                  "text": {
+                    "body": body
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  };
+
+  return message;
 }
 
 async function sendMessage(ctx, attributes) {
@@ -94,34 +123,13 @@ async function sendMessage(ctx, attributes) {
 
   if (response.hasOwnProperty('data')) {
     // for now (text messages) the existance of data should be enough to indicate success.
-    // WA doesn't return a message struct that is recieved by the client, so no info to use to call parse message.
+    // WA doesn't return a message struct that is received by the client, so no info to use to call parse message.
     // for now, just build a fake message
-    const message = {
-      "entry": [
-        {
-          "changes": [
-            {
-              "value": {
-                "messages": [
-                  {
-                    "timestamp": (Date.now()/1e3).toString(), // WA sends time in sec, so normalize to that
-                    "from": process.env.WHATSAPP_PHONE_NUMBER.toString(),
-                    "id": response.data.messages[0].id,
-                    "type": kind,
-                    "text": {
-                      "body": body
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    };
+    const message = getBotGeneratedMessage(ctx, response, attributes);
 
     // TODO ishumsky - fileInfo is outside until added to the DB.
     const [parsedMessage, fileInfo] = parseMessage(message);
+
     // TODO igors - because of the abuse of chatId, after parsing it'll have the value of our bot,
     // so DB lookups will not pick responses.
     // change back to the user phone number to correlate.
@@ -179,6 +187,65 @@ function isMessageForMe(msg) {
   return false;
 }
 
+async function getVoiceMp3File(ctx, parsedMessage, fileInfo) {
+  ctx.log(`getVoiceMp3File: ${parsedMessage}, ${fileInfo}`);
+  const url = await getDownloadUrl(ctx, fileInfo.fileId);
+  const [oggFilePath, mp3FilePath] = getAudioFilePaths(ctx, parsedMessage.chatId, fileInfo);
+  let isDownloadSuccessful = false;
+  try {
+    const headers = {
+      Authorization: `Bearer ${process.env.WHATSAPP_BOT_TOKEN}`,
+    };
+
+    isDownloadSuccessful = await downloader.downloadStreamFile(ctx, url, oggFilePath, headers);
+    await mediaConverter.convertOggToMp3(ctx, oggFilePath, mp3FilePath);
+
+    return mp3FilePath;
+    
+  } finally {
+    // we should delete the Ogg file no matter what happened, as long as it exists.
+    const deleteOggFile = isDownloadSuccessful || fileServices.fileExists(oggFilePath);
+    if (deleteOggFile) {
+      fileServices.deleteFile(ctx, oggFilePath);
+    }
+  }
+}
+
+async function getDownloadUrl(ctx, fileId) {
+  ctx.log(`getDownloadUrl: ${fileId}`);
+  const headers = {
+    Authorization: `Bearer ${process.env.WHATSAPP_BOT_TOKEN}`,
+  };
+
+  const response = await axios.get(
+    `https://graph.facebook.com/${process.env.FACEBOOK_GRAPH_VERSION}/${fileId}?phone_number_id=${process.env.WHATSAPP_PHONE_NUMBER_ID}`,
+    {headers}
+  );
+
+  if (response.hasOwnProperty("error")) {
+    ctx.log('getDownloadUrl failed. response=', response);
+  }
+
+  ctx.log(`getDownloadUrl: response=${response}`);
+  // from now on assume it has succeeeded.
+
+  const downloadUrl = response.data.url;
+
+  ctx.log(`getDownloadUrl: downloadUrl=${downloadUrl}`);
+  return downloadUrl;
+}
+
+function getAudioFilePaths(ctx, chatId, fileInfo) {
+  const tempDirPath = fileServices.makeTempDirName(`r1x/wa/${chatId}_`);
+  const filePathName = tempDirPath + '/audio';
+  const oggFilePath = filePathName + '.ogg';
+  const mp3FilePath = filePathName + '.mp3';
+
+  ctx.log(`getAudioFilePaths: oggFilePath=${oggFilePath}, mp3FilePath=${mp3FilePath}`);
+  return [oggFilePath, mp3FilePath];
+}
+
+
 function setTyping(chatId, inFlight) {
   // TODO igors - can't find WA API for typing indication.
   return;
@@ -189,5 +256,6 @@ module.exports = {
   sendMessage,
   sendMessageRaw,
   isMessageForMe,
-  setTyping
+  setTyping,
+  getVoiceMp3File
 };

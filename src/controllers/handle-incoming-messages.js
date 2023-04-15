@@ -29,12 +29,15 @@ async function handleIncomingMessageCore(ctx, event, inFlight) {
   // 1. Parse message and insert to database
   const parsedEvent = JSON.parse(event);
   const messenger = messengers[parsedEvent.source];
-  // TODO ishumsky - fileInfo is outside until added to the DB
-  const [parsedMessage, fileInfo] = messenger.parseMessage(parsedEvent.event);
 
-  if (fileInfo.isSupported == false) {
+  // TODO igors - need a better mechanism to split the DB info an non-DB info
+  const parseMessageResult = messenger.parseMessage(parsedEvent.event);
+
+  if (parseMessageResult == undefined) {
     return;
   }
+
+  const [parsedMessage, fileInfo] = parseMessageResult;
 
   let isTyping = false;
 

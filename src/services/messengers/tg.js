@@ -24,7 +24,6 @@ function parseMessage(message) {
   message = message.message;
 
   const source = "tg";
-  const isSupported = true;
   const messageTimestamp = message.date * 1e3;
   const chatType = message.chat.type;
   const chatId = message.chat.id.toString();
@@ -53,8 +52,9 @@ function parseMessage(message) {
     body,
     rawSource: message
   },
+
   // TODO ishumsky - fileId is outside until added to the DB.
-  {isSupported, fileId, fileUniqueId}];
+  {fileId, fileUniqueId}];
 }
 
 async function sendMessage(ctx, attributes) {
@@ -62,6 +62,7 @@ async function sendMessage(ctx, attributes) {
 
   if (response.data.ok) {
     const message = { message: response.data.result };
+    
     // TODO ishumsky - fileInfo is outside until added to the DB.
     const [parsedMessage, fileInfo] = parseMessage(message);
     ctx.log({ parsedMessage });
