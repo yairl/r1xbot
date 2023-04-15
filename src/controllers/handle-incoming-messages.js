@@ -32,6 +32,10 @@ async function handleIncomingMessageCore(ctx, event, inFlight) {
   // TODO ishumsky - fileInfo is outside until added to the DB
   const [parsedMessage, fileInfo] = messenger.parseMessage(parsedEvent.event);
 
+  if (fileInfo.isSupported == false) {
+    return;
+  }
+
   let isTyping = false;
 
   // 2. If this is a voice message, then transcribe it
