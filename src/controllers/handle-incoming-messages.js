@@ -90,7 +90,8 @@ async function handleIncomingMessageCore(ctx, event, inFlight) {
 
   // 3. Generate reply
   ctx.log('calling getChatCompletion...');
-  const replyMessage = await getChatCompletion(ctx, messageHistory);
+  const messengerName = parsedEvent.source == 'wa' ? 'WhatsApp' : 'Telegram';
+  const replyMessage = await getChatCompletion(ctx, messengerName, messageHistory);
   ctx.log('getChatCompletion done, result is ', { replyMessage });
 
   // 4. Send reply to user
