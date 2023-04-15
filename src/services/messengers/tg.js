@@ -52,6 +52,7 @@ function parseMessage(message) {
     body,
     rawSource: message
   },
+
   // TODO ishumsky - fileId is outside until added to the DB.
   {fileId, fileUniqueId}];
 }
@@ -61,6 +62,7 @@ async function sendMessage(ctx, attributes) {
 
   if (response.data.ok) {
     const message = { message: response.data.result };
+    
     // TODO ishumsky - fileInfo is outside until added to the DB.
     const [parsedMessage, fileInfo] = parseMessage(message);
     ctx.log({ parsedMessage });

@@ -3,7 +3,7 @@ const fs = require('fs');
 const pathLib = require('path');
 const axios = require("axios");
 
-async function downloadStreamFile(ctx, url, path) {
+async function downloadStreamFile(ctx, url, path, headers = undefined) {
   // Create the directory if it doesn't exist
   const dirPath = pathLib.dirname(path);
   if (!fs.existsSync(dirPath)) {
@@ -15,7 +15,8 @@ async function downloadStreamFile(ctx, url, path) {
   const response = await axios({
     method: 'GET',
     url: url,
-    responseType: 'stream'
+    responseType: 'stream',
+    headers: headers
   });
 
   response.data.pipe(fs.createWriteStream(path));
