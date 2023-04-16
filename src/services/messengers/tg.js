@@ -177,11 +177,16 @@ function setTyping(chatId, inFlight) {
   );
 }
 
+async function setStatusRead(ctx, messageId) {
+  // Telegram bot doesn't have read receipts
+}
+
 module.exports = {
   parseMessage,
   sendMessage,
   sendMessageRaw,
   isMessageForMe,
   setTyping,
-  getVoiceMp3File
+  getVoiceMp3File,
+  setStatusRead
 };
