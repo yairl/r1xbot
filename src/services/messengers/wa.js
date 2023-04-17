@@ -177,7 +177,7 @@ async function sendMessageRaw(ctx, attributes) {
       {headers}
     );
   } catch (error) {
-    ctx.log(`sendMessageRaw: exception. error.response.data=${error.response.data}`);
+    ctx.log(`sendMessageRaw: exception. error.response.data=${error?.response?.data}`);
     throw(error);
   }
   //ctx.log(response);
@@ -230,7 +230,7 @@ async function getDownloadUrl(ctx, fileId) {
       {headers}
     );
   } catch (error) {
-    ctx.log(`getDownloadUrl: exception. error.response.data=${error.response.data}`);
+    ctx.log(`getDownloadUrl: exception. error.response.data=${error?.response?.data}`);
     throw(error);
   }
 
@@ -284,16 +284,12 @@ async function setStatusRead(ctx, messageId) {
       {headers}
     );
   } catch (error) {
-    ctx.log(`setStatusRead: exception. error.response.data=${error.response.data}`);
+    ctx.log(`setStatusRead: exception. error.response.data=${error?.response?.data}`);
     throw(error);
   }
 
-  if (response.hasOwnProperty("data") == false) {
-    ctx.log("setStatusRead: response is malformed. If didn't fail, then should have had data");
-  }
-
-  if (response.data.success == false) {
-    ctx.log("setStatusRead: operation didn't succeed");
+  if (response?.data?.success != true) {
+    ctx.log(`setStatusRead: response is wrong. Compared field ${response?.data?.success}. Full response ${response}`);
   }
 }
 
