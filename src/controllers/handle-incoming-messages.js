@@ -39,7 +39,7 @@ async function handleIncomingMessageCore(ctx, event, inFlight) {
 
   const [parsedMessage, fileInfo] = parseMessageResult;
 
-  await messenger.setStatusRead(ctx, parsedMessage.messageId);
+  messenger.setStatusRead(ctx, parsedMessage.messageId);
 
   let isTyping = false;
 
