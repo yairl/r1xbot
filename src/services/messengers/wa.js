@@ -169,11 +169,17 @@ async function sendMessageRaw(ctx, attributes) {
     args.context = {message_id: quoteId};
   }
 
-  const response = await axios.post(
-    `https://graph.facebook.com/${process.env.FACEBOOK_GRAPH_VERSION}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-    args,
-    {headers}
-  );
+  let response;
+  try {
+     response = await axios.post(
+      `https://graph.facebook.com/${process.env.FACEBOOK_GRAPH_VERSION}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+      args,
+      {headers}
+    );
+  } catch (error) {
+    ctx.log(`sendMessageRaw: exception. error.response.data=${error?.response?.data}`);
+    throw(error);
+  }
   //ctx.log(response);
   
   return response;
@@ -217,10 +223,16 @@ async function getDownloadUrl(ctx, fileId) {
     Authorization: `Bearer ${process.env.WHATSAPP_BOT_TOKEN}`,
   };
 
-  const response = await axios.get(
-    `https://graph.facebook.com/${process.env.FACEBOOK_GRAPH_VERSION}/${fileId}?phone_number_id=${process.env.WHATSAPP_PHONE_NUMBER_ID}`,
-    {headers}
-  );
+  let response;
+  try {
+    response = await axios.get(
+      `https://graph.facebook.com/${process.env.FACEBOOK_GRAPH_VERSION}/${fileId}?phone_number_id=${process.env.WHATSAPP_PHONE_NUMBER_ID}`,
+      {headers}
+    );
+  } catch (error) {
+    ctx.log(`getDownloadUrl: exception. error.response.data=${error?.response?.data}`);
+    throw(error);
+  }
 
   if (response.hasOwnProperty("error")) {
     ctx.log('getDownloadUrl failed. response=', response);
@@ -251,11 +263,42 @@ function setTyping(chatId, inFlight) {
   return;
 }
 
+async function setStatusRead(ctx, messageId) {
+  ctx.log(`setStatusRead`);
+  const headers = {
+    Authorization: `Bearer ${process.env.WHATSAPP_BOT_TOKEN}`,
+    'Content-Type': 'application/json',
+  };
+
+  var args = {
+    messaging_product: "whatsapp",
+    status: "read",
+    message_id: messageId,
+  };
+
+  let response;
+  try {
+    response = await axios.post(
+      `https://graph.facebook.com/${process.env.FACEBOOK_GRAPH_VERSION}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+      args,
+      {headers}
+    );
+  } catch (error) {
+    ctx.log(`setStatusRead: exception. error.response.data=${error?.response?.data}`);
+    throw(error);
+  }
+
+  if (response?.data?.success != true) {
+    ctx.log(`setStatusRead: response is wrong. Compared field ${response?.data?.success}. Full response ${response}`);
+  }
+}
+
 module.exports = {
   parseMessage,
   sendMessage,
   sendMessageRaw,
   isMessageForMe,
   setTyping,
-  getVoiceMp3File
+  getVoiceMp3File,
+  setStatusRead
 };
