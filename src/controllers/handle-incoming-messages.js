@@ -39,6 +39,8 @@ async function handleIncomingMessageCore(ctx, event, inFlight) {
 
   const [parsedMessage, fileInfo] = parseMessageResult;
 
+  await messenger.setStatusRead(ctx, parsedMessage.messageId);
+
   let isTyping = false;
 
   // 2. If this is a voice message, then transcribe it
