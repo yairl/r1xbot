@@ -285,7 +285,7 @@ async function setStatusRead(ctx, messageId) {
     );
   } catch (error) {
     ctx.log(`setStatusRead: exception. error.response.data=${error?.response?.data}`);
-    throw(error);
+    return ;
   }
 
   if (response?.data?.success != true) {
