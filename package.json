@@ -19,6 +19,8 @@
     "openai": "^3.2.1",
     "pg": "^8.10.0",
     "pg-hstore": "^2.3.4",
+    "posthog-js": "^1.53.4",
+    "posthog-node": "^3.0.0",
     "sequelize": "^6.30.0",
     "sqs-consumer": "^7.0.3",
     "stability-client": "^1.8.0",

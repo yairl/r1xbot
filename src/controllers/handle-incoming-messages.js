@@ -5,6 +5,13 @@ const ms = require("../services/messages/messages-service");
 const messengers = require("../services/messengers");
 const fileServices = require("../utils/file-services");
 
+const { PostHog } = require('posthog-node');
+
+const posthog_client = new PostHog(
+    process.env.POSTHOG_API_KEY,
+    { host: 'https://app.posthog.com' }
+  );
+
 // Handle incoming message from ingress SQS queue.
 //
 // 1. Insert message to DB.
@@ -61,6 +68,14 @@ async function handleIncomingMessageCore(ctx, event, inFlight) {
         quoteId: parsedMessage.messageId,
       });
     }
+    posthog_client.capture({
+      distinctId: `${parsedEvent.source}:${parsedMessage.chatId}`,
+      event: 'message-transcribed',
+      properties: {
+        senderId: parsedMessage.senderId,
+        lengthInSeconds: -1
+      }
+    });
   }
 
   const message = await ms.insertMessage(ctx, parsedMessage);
@@ -93,17 +108,27 @@ async function handleIncomingMessageCore(ctx, event, inFlight) {
   // 3. Generate reply
   ctx.log('calling getChatCompletion...');
   const messengerName = parsedEvent.source == 'wa' ? 'WhatsApp' : 'Telegram';
-  const replyMessage = await getChatCompletion(ctx, messengerName, messageHistory);
-  ctx.log('getChatCompletion done, result is ', { replyMessage });
+  const completion = await getChatCompletion(ctx, messengerName, messageHistory);
+  ctx.log('getChatCompletion done, result is ', completion.response);
 
   // 4. Send reply to user
+
   await messenger.sendMessage(ctx, {
     chatId: parsedMessage.chatId,
     kind: "text",
-    body: replyMessage
+    body: completion.response
   });
 
-  return `replied: ${replyMessage}`;
+  posthog_client.capture({
+    distinctId: `${parsedEvent.source}:${parsedMessage.chatId}`,
+    event: 'reply-sent',
+    properties: {
+      senderId: parsedMessage.senderId,
+      promptTokens: completion.promptTokens,
+      completionTokens: completion.completionTokens,
+      totalTokens: completion.promptTokens + completion.completionTokens
+    }
+  });
 }
 
 async function sendIntroMessage(ctx, messenger, parsedMessage) {
