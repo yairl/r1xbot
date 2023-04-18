@@ -62,7 +62,11 @@ async function getChatCompletion(ctx, messengerName, messages) {
 
     ctx.log('getChatCompletion response: ', completion.data.choices[0].message.content);
 
-    return completion.data.choices[0].message.content;
+    return {
+      response: completion.data.choices[0].message.content,
+      promptTokens: completion.data.usage.prompt_tokens,
+      completionTokens: completion.data.usage.completion_tokens
+    }
   } catch (e) {
     if (e.response) {
       ctx.log('error: ', e.response.status, e.response.data);
