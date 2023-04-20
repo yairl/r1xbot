@@ -5,7 +5,7 @@ require("./src/utils/init-env-vars").config();
 
 const { Consumer } = require("sqs-consumer");
 const { SQSClient } = require("@aws-sdk/client-sqs");
-const { handler } = require("./index");
+const handler = require("./src/controllers/handle-incoming-messages").handleIncomingMessage;
 
 const ctx = { msgCount: 0 };
 
