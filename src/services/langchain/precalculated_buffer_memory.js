@@ -43,7 +43,6 @@ class PrecalculatedBufferMemory extends chat_memory_js_1.BaseChatMemory {
     }
 
     async saveContext(inputValues, outputValues) {
-        console.log(`saveContext, inputValues = ${JSON.stringify(inputValues)}, outputValues = ${JSON.stringify(outputValues)}`);
         // this is purposefully done in sequence so they're saved in order
         this.userMessage = base_js_1.getInputValue(inputValues, this.inputKey);
         this.aiMessage = base_js_1.getInputValue(outputValues, this.outputKey);
@@ -51,9 +50,7 @@ class PrecalculatedBufferMemory extends chat_memory_js_1.BaseChatMemory {
 
     async loadMemoryVariables(_values) {
         const messages = await this.chatHistory.getMessages();
-
-        console.log( { messages } );
-
+        //console.log({ messages });
         if (this.returnMessages) {
             const result = {
                 [this.memoryKey]: messages,

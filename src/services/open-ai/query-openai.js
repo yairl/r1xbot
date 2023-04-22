@@ -36,8 +36,7 @@ function getPromptTemplate(ctx, messengerName) {
 Current conversation:
 
 {chat_history}
-Human: {input}
-R1X:`;
+AI:`;
 
     return queryTemplate;
 }
@@ -68,8 +67,6 @@ async function getLimitedMessageHistory(ctx, messages, promptTemplate) {
   }
 
   const mergedMessages = [];
-
-  //console.log( { messagesUptoMaxTokens } );
 
   let prevRole = undefined;
 
