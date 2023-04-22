@@ -121,12 +121,10 @@ async function getMessagesUptoMaxTokens(ctx, systemMessage, chatMessages, softTo
     }
 
     // resize the array for enough cells for:  system message(1) + items from chatMessages from startIndex till the end
-    result.length = 1 + (chatMessages.length - startIndex);
-
-    result[0] = systemMessage;
+    result.length = (chatMessages.length - startIndex);
 
     for (let i = startIndex; i < chatMessages.length; i++) {
-        const resultIndex = i-startIndex+1; // remove offset
+        const resultIndex = i-startIndex; // remove offset
         result[resultIndex] = chatMessages[i];
     }
 
