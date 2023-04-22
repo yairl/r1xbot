@@ -31,14 +31,18 @@ function convertMessageToChatFormat(message) {
   return convertedMessage;
 }
 
-const query_template = `The following is a conversation between a human and an AI, Robot 1-X, developed by the Planet Express team and integrated into an instant messenger. R1X is helpful and provides specific details from its context. If R1X does not know the answer to a question, it truthfully says it does not know.
+function getPromptTemplate(ctx, messengerName) {
+    const queryTemplate = `The following is a conversation between a human and an AI, Robot 1-X, developed by the Planet Express team and integrated into ${messengerName}. R1X is helpful and provides specific details from its context. If R1X does not know the answer to a question, it truthfully says it does not know.
 Current conversation:
 
 {chat_history}
 Human: {input}
 R1X:`;
 
-async function getLimitedMessageHistory(ctx, messages) {
+    return queryTemplate;
+}
+
+async function getLimitedMessageHistory(ctx, messages, promptTemplate) {
   const parsedMessages = [];
 
   for (const message of messages) {
@@ -53,7 +57,7 @@ async function getLimitedMessageHistory(ctx, messages) {
   const hardTokenLimit = 4000;
 
   // get list of messages that will consume upto maxToken. This includes also the system message.
-  const messagesUptoMaxTokens = await tokenPredictor.getMessagesUptoMaxTokens(ctx, query_template, parsedMessages, softTokenLimit, hardTokenLimit);
+  const messagesUptoMaxTokens = await tokenPredictor.getMessagesUptoMaxTokens(ctx, promptTemplate, parsedMessages, softTokenLimit, hardTokenLimit);
 
   if (messagesUptoMaxTokens.length == 0) {
     return [];
@@ -83,7 +87,8 @@ async function getLimitedMessageHistory(ctx, messages) {
 }
 
 async function getChatCompletion(ctx, messengerName, messages) {
-  const messagesUptoMaxTokens = await getLimitedMessageHistory(ctx, messages);
+  const promptTemplate = getPromptTemplate(ctx, messengerName);
+  const messagesUptoMaxTokens = await getLimitedMessageHistory(ctx, messages, promptTemplate);
 
   ctx.log('getChatCompletion messagesUptoMaxTokens: ', messagesUptoMaxTokens);
 
@@ -98,7 +103,7 @@ async function getChatCompletion(ctx, messengerName, messages) {
   const memory = new PrecalculatedBufferMemory({ memoryKey: "chat_history", messages: messagesUptoMaxTokens });
 
   // Instantiate "PromptTemplate" passing the prompt template string initialized above
-  const prompt = PromptTemplate.fromTemplate(query_template);
+  const prompt = PromptTemplate.fromTemplate(getPromptTemplate(ctx, messengerName));
 
   //Instantiate LLMChain, which consists of a PromptTemplate, an LLM and memory.
   const chain = new LLMChain({ llm: model, prompt, memory });
