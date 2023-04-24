@@ -1,5 +1,5 @@
 "use strict"
-const { getChatCompletion, createTranscription } = require("../services/open-ai/query-openai");
+const { getChatCompletion, getChatCompletionWithTools, createTranscription } = require("../services/open-ai/query-openai");
 const db = require("../db/models");
 const ms = require("../services/messages/messages-service");
 const messengers = require("../services/messengers");
@@ -108,7 +108,7 @@ async function handleIncomingMessageCore(ctx, event, inFlight) {
   // 3. Generate reply
   ctx.log('calling getChatCompletion...');
   const messengerName = parsedEvent.source == 'wa' ? 'WhatsApp' : 'Telegram';
-  const completion = await getChatCompletion(ctx, messengerName, messageHistory);
+  const completion = await getChatCompletionWithTools(ctx, messengerName, messageHistory);
   ctx.log('getChatCompletion done, result is ', completion.response);
 
   // 4. Send reply to user
