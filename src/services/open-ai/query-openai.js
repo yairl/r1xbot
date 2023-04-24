@@ -9,6 +9,10 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 const tokenPredictor = require("../token-prediction/token-predictor");
 
+function deepClone(o) {
+  return JSON.parse(JSON.stringify(o));
+}
+
 function convertMessageToChatFormat(message) {
   const convertedMessage = {
     role: message.isSentByMe ? "assistant" : "user",
@@ -116,49 +120,94 @@ async function getChatCompletionCore(ctx, messengerName, messages) {
   }
 }
 
-const prepMessage = { role : 'user', content : `For my next request, you have the following tools available:
+const prepMessage = { role : 'user', content : `For my next request, you can ask to invoke a Google search to augment your database before replying.
+This is helpful for any request for up-to-date information, or data which you do not have.
 
-SEARCH - fetch up-to-date information for anything later than 2020 about world events and data from a search engine.
+At any case where such data may be helpful, please reply with the following format:
 
-Answer the request in one of two ways.
+TOOL=SEARCH TOOL_INPUT=<search prompt>
 
-Option 1: you need more data from one of the tools.
-REPLY FORMAT: TOOL=<tool name>, TOOL_INPUT=<tool input>
+DO NOT DEVIATE FROM THIS FORMAT, KEEPING ALL FORMATTING OPTIONS SUCH AS UPPERCASE/LOWERCASE, EXACT WORDS ETC EXACTLY THE SAME.
 
-Option 2: you can handle the request without invoking more tools.
-REPLY FORMAT: ANSWER=<your answer>
+I will perform that search and provide you with the result in a separate message.
+Otherwise, provide your answer.
 
-Only use this format, Do not provide any other information in your answer.
-
-ALWAYS FETCH DATA FROM A TOOL IF IT CAN HELP GENERATE A MORE ACCURATE RESULT.
-DO NOT DEVIATE FROM TOOL-PROVIDED INFORMATION IN ANY MANNER.
-ALWAYS RELY ON IT, AND NEVER CONTRADICT IT - EVEN IF YOUR INTERNAL DATABASE INDICATES OTHERWISE.
-NEVER INFORM USER TOOL-PROVIDED INFORMATION MAY BE INCORRECT.
-DO NOT MENTION DATA WAS PROVIDED BY TOOL IN ANY MANNER.
-
-IT IS CRITICAL THAT YOUR REPLY WILL ONLY USE THE ABOVE FORMATS, WITH NO OTHER CHARACTERS BEFORE OR AFTER IT.
-DO NOT REPEAT TOOL REQUESTS ALREADY ANSWERED.
-
-Understood?` };
+IT IS CRITICAL THAT YOUR REPLY WILL ONLY USE THIS EXACT FORMAT, WITH NO OTHER CHARACTERS BEFORE OR AFTER IT.
+TODAY IS April 24th, 2023, AND YOUR DATABASE ABOUT WORLD EVENTS CONTAINS EVENTS UNTIL 2020.
+`
+};
 
 const prepReplyMessage = { role : 'assistant', content : `Understood! Please proceed with your request.` };
+
+async function getChatCompletionGoogleData(ctx, messengerName, messages) {
+  const parsedMessages = deepClone(messages);
+
+  const askPrompt = `Provide a Google search prompt that will provide relevant information for the following request:
+
+REQUEST: ${parsedMessages[parsedMessages.length - 1].content}
+
+ONLY PROVIDE THE PROMPT, WITH NO EXTRA COMMENTS, PREFIXES OR SUFFIXES.`
+
+  parsedMessages[parsedMessages.length - 1].content = askPrompt;
+
+  const searchPrompt = await getChatCompletionCore(ctx, messengerName, parsedMessages);
+  console.log(`Requested search prompt=${searchPrompt.response}`);
+
+  const { Serper } = require('langchain/tools');
+  const serper = new Serper();
+
+  const answer = await serper.call(searchPrompt.response);
+
+  return { prompt : searchPrompt.response, answer: answer };
+}
+
+async function getChatCompletionWithSearchResult(ctx, messengerName, messages, googleData) {
+  const parsedMessages = deepClone(messages);
+  const askPrompt = `R1X just performed a Google search with the prompt "${googleData.prompt}", and got this answer: ${googleData.answer}.
+
+ASSUME THIS DATA IS CORRECT AND UP-TO-DATE.
+DO NOT CONTRADICT IT AND DO NOT DOUBT IT.
+IT SUPERSEDES ANY OTHER DATA IN YOUR DATABASE.
+IN YOUR REPLY, DO NOT MENTION ANY CONTRADICTION BETWEEN THIS DATA AND OTHER DATA YOU HAVE.
+THE DATA PROVIDED BY THE GOOGLE SEARCH IS ACCURATE AS OF 2023.
+THE DATA IN THE R1X DATABASE IS ACCURATE AS OF 2020, AND IS THEREFORE OUT OF DATE.
+IN CASE OF ANY CONFLICT BETWEEN THE TWO, THE DATA PROVIDED BY THE GOOGLE SEARCH OVERRIDES THE DATA IN R1X DATABASES.
+
+Please reply to the following message: ${parsedMessages[parsedMessages.length - 1].content}`;
+
+  parsedMessages[parsedMessages.length - 1].content = askPrompt;
+
+  const answer = await getChatCompletionCore(ctx, messengerName, parsedMessages);
+
+  console.log({answer});
+
+  return answer; 
+}
+
 
 async function getChatCompletionWithTools(ctx, messengerName, messages) {
   ctx.log(`Starting getChatCompletionWithTools.`);
 
-  const parsedMessages = Array.from(messages);
+  const parsedMessages = await dbMessages2Messages(messages);
+
+  const googleData = await getChatCompletionGoogleData(ctx, messengerName, parsedMessages);
+  const answer = await getChatCompletionWithSearchResult(ctx, messengerName, parsedMessages, googleData);
+
+  return answer;
+
+  //const parsedMessages = deepClone(messages);
   //const parsedMessages = await dbMessages2Messages(messages);
 
   const prevResponses = [];
   const ask = parsedMessages[parsedMessages.length - 1];
   const history = parsedMessages.slice(0, -1);
 
-  history.push(prepMessage);
-  history.push(prepReplyMessage);
+  const googleSearchHistory = deepClone(history);
+  generateChatCompletion();
 
   for (let i = 0; i < 2; i++) {
     ctx.log(`Invoking completionIterativeStep #${i} ASK=${ask}`);
-    const { answer, tool, input } = await completionIterativeStep(ctx, Array.from(history), ask, prevResponses);
+    const { answer, tool, input } = await completionIterativeStep(ctx, deepClone(history), ask, prevResponses);
     ctx.log({history});
     ctx.log(`completionIterativeStep done, answer=${answer} tool=${tool} input=${input}`);
 
@@ -185,13 +234,15 @@ async function completionIterativeStep(ctx, history, ask, prevResponses) {
 
   const messages = history;
 
-  let newRequest = { role : 'user', content : 'Request: ' + ask.content };
+  let newRequest = { role : 'user', content : '' };
   if (prevResponses.length > 0) {
-    newRequest.content += `\n\nPrevious tool invocations and their responses:\n${prevResponses.join('\n')}`;
-    newRequest.conent += `\nTHIS DATA IS MORE UP TO DATE THAN DATA IN YOUR DATABASE, AND SUPERSEDES IT.`;
+    newRequest.content += `\n\nPrevious search invocation and its response:\n${prevResponses.join('\n')}`;
+    newRequest.content += `\nTHIS DATA IS MORE UP TO DATE THAN DATA IN YOUR DATABASE, AND SUPERSEDES IT.\n`;
   };
 
-  messages.push(newRequest);
+  messages[messages.length - 1].content += newRequest.content;
+  messages[messages.length - 1].content += ask.content;
+//  messages.push(newRequest);
 
   const reply = await getChatCompletionCore(ctx, `wa`, messages);
   ctx.log({reply});
@@ -230,7 +281,7 @@ function getAnswer(reply) {
 }
 
 function getAction(reply) {
-  const pattern = /TOOL=(.+)\s*,\s*TOOL_INPUT=(.+)/i;
+  const pattern = /TOOL=(.+)\s* \s*TOOL_INPUT=(.+)/i;
   const match = pattern.exec(reply);
 
   if (match) {
@@ -264,6 +315,14 @@ async function createTranscription(ctx, mp3FilePath) {
   ctx.log(`createTranscription: timeTaken=${timeTaken}ms transcription=${transcription.data.text}`);
   return transcription.data.text;
 }
+
+/*
+ALWAYS FETCH DATA FROM A TOOL IF IT CAN HELP GENERATE A MORE ACCURATE RESULT.
+DO NOT DEVIATE FROM TOOL-PROVIDED INFORMATION IN ANY MANNER.
+ALWAYS RELY ON IT, AND NEVER CONTRADICT IT - EVEN IF YOUR INTERNAL DATABASE INDICATES OTHERWISE.
+NEVER INFORM USER TOOL-PROVIDED INFORMATION MAY BE INCORRECT.
+DO NOT MENTION DATA WAS PROVIDED BY TOOL IN ANY MANNER.
+*/
 
 module.exports = {
   getChatCompletion,
