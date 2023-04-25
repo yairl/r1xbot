@@ -98,7 +98,7 @@ async function getChatCompletionCore(ctx, messengerName, messages) {
     const completion = await openai.createChatCompletion({
       model: process.env.OPENAI_MODEL,
       messages: messagesUptoMaxTokens,
-      temperature: 0.9
+      temperature: 0.2
     });
 
     ctx.log('getChatCompletionCore response: ', completion.data.choices[0].message.content);
@@ -188,22 +188,19 @@ Please reply to the following message: ${parsedMessages[parsedMessages.length - 
 async function getChatCompletionWithTools(ctx, messengerName, messages) {
   ctx.log(`Starting getChatCompletionWithTools.`);
 
-  const parsedMessages = await dbMessages2Messages(messages);
+//  const parsedMessages = await dbMessages2Messages(messages);
 
-  const googleData = await getChatCompletionGoogleData(ctx, messengerName, parsedMessages);
-  const answer = await getChatCompletionWithSearchResult(ctx, messengerName, parsedMessages, googleData);
+//  const googleData = await getChatCompletionGoogleData(ctx, messengerName, parsedMessages);
+//  const answer = await getChatCompletionWithSearchResult(ctx, messengerName, parsedMessages, googleData);
 
-  return answer;
+//  return answer;
 
-  //const parsedMessages = deepClone(messages);
+  const parsedMessages = deepClone(messages);
   //const parsedMessages = await dbMessages2Messages(messages);
 
   const prevResponses = [];
   const ask = parsedMessages[parsedMessages.length - 1];
   const history = parsedMessages.slice(0, -1);
-
-  const googleSearchHistory = deepClone(history);
-  generateChatCompletion();
 
   for (let i = 0; i < 2; i++) {
     ctx.log(`Invoking completionIterativeStep #${i} ASK=${ask}`);
@@ -235,14 +232,27 @@ async function completionIterativeStep(ctx, history, ask, prevResponses) {
   const messages = history;
 
   let newRequest = { role : 'user', content : '' };
+  newRequest.content += `Request: ${ask.content}`;
+
   if (prevResponses.length > 0) {
-    newRequest.content += `\n\nPrevious search invocation and its response:\n${prevResponses.join('\n')}`;
-    newRequest.content += `\nTHIS DATA IS MORE UP TO DATE THAN DATA IN YOUR DATABASE, AND SUPERSEDES IT.\n`;
+    newRequest.content += `
+You also have data from previous tool invocations requested by you.
+ASSUME THIS DATA IS CORRECT AND UP-TO-DATE. DO NOT CONTRADICT IT AND DO NOT DOUBT IT.
+IT SUPERSEDES ANY OTHER DATA IN YOUR DATABASE.
+THE DATA IN THE R1X DATABASE IS ACCURATE AS OF 2020, AND THEREFORE MAY BE OUT OF DATE.
+
+Data:
+
+${prevResponses.join('\n')}
+
+`;
   };
 
-  messages[messages.length - 1].content += newRequest.content;
-  messages[messages.length - 1].content += ask.content;
-//  messages.push(newRequest);
+
+  messages.push(prepMessage);
+  messages.push(prepReplyMessage);
+
+  messages.push(newRequest);
 
   const reply = await getChatCompletionCore(ctx, `wa`, messages);
   ctx.log({reply});

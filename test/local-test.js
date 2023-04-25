@@ -41,21 +41,16 @@ history = [
       role: 'assistant',
       content: "ANSWER: Based on the weather forecast for Milan, Italy, tomorrow, which is partly cloudy with highs of 21°C (70°F) and lows of 9°C (48°F), it is recommended that you wear comfortable clothing such as light shirts, pants or skirts, and a jacket or sweater to keep you warm in case the temperature drops. It's advisable to wear clothes in layers, to be prepared for fluctuations in temperatures."
     },
-    { role: 'user', content: 'Who is the president of Brasil?' },
-    {
-      role: 'assistant',
-      content: 'ANSWER: The current President of Brazil is Jair Bolsonaro.'
-    },
     {
       role: 'user',
       content: 'Who is the president of Brasil?'
     }
 ];
 
-require("./src/utils/init-env-vars").config();
+require("../src/utils/init-env-vars").config();
 
-const { logger, createLoggingContext } = require("./src/utils/logger");
-const { getChatCompletionWithTools } = require("./src/services/open-ai/query-openai");
+const { logger, createLoggingContext } = require("../src/utils/logger");
+const { getChatCompletionWithTools } = require("../src/services/open-ai/query-openai");
 
 const ctx = createLoggingContext(0);
 const reply = getChatCompletionWithTools(ctx, 'wa', history);
