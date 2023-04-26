@@ -27,6 +27,7 @@ function getSystemMessage(ctx, messengerName) {
   const systemMessage = {
     role: 'system',
     content: `Robot 1-X (R1X) is a helpful assistant developed by the Planet Express team and integrated into a ${messengerName} chat.
+If R1X does not know, it truthfully says it does not know.
 More information about R1X is available at https://r1x.ai.
 
 Today's date is ${new Date(Date.now()).toDateString()}.`
@@ -126,9 +127,9 @@ const prepMessage = { role : 'user', content : `For my next message, you can inv
 You have the following tools available:
 
 TOOL: SEARCH - performs a Google search and returns results from the top page. FORMAT: search prompt.
-TOOL: WEATHER - preferred tool for weather information. FORMAT: City, Country. Data returned as a 5-day weather data in JSON format.
+TOOL: WEATHER - preferred tool for weather information. FORMAT: City, Country, both in English. Data returned as a 5-day weather data in JSON format.
 
-This is helpful for any request about up-to-date information, or data which you do not have, as your knowledge is updated to September 2021 and it is now April 2023.
+Your knowledge is updated to September 2021 and it is now  ${new Date(Date.now()).toDateString()}.
 At any case where such data may be helpful, please reply with the following format:
 
 TOOL=SEARCH TOOL_INPUT=<search prompt>
@@ -175,12 +176,12 @@ async function getChatCompletionWithTools(ctx, messengerName, messages) {
 
     if (tool && input) {
       const response = await invokeTool(tool, input);
-      prevResponses.push(`TOOL=${tool}, TOOL_INPUT=${input}, ACCURACY=100%, DATE=April 25 2023\n${response}'`);
+      prevResponses.push(`TOOL=${tool}, TOOL_INPUT=${input}, ACCURACY=100%, DATE=${new Date(Date.now()).toDateString()}.\n${response}'`);
     }
   }
 
   ctx.log(`getChatCompletionWithTools: failed generating customized reply, falling back to getChatCompletion.`);
-  //return getChatCompletion(ctx, messengerName, messages);
+  return getChatCompletion(ctx, messengerName, messages);
 }
 
 async function completionIterativeStep(ctx, messengerName, history, ask, prevResponses) {
@@ -277,13 +278,25 @@ async function invokeTool(tool, input) {
   return null;
 }
 
-async function invokeWeatherSearch(input) {
-  const encodedParams = querystring.encode({ name : input, count : 1, language : 'en', format : 'json' });
-  const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${encodedParams}`);
-  const geoResJson = await geoRes.json();
+function parseGeolocation(locationData) {
+  const regex = /^(\d+\.\d+)\° ([NSEW]),\s*(\d+\.\d+)\° ([NSEW])$/;
+  const match = locationData.match(regex);
 
-  const lat = geoResJson.results[0].latitude;
-  const lon = geoResJson.results[0].longitude;
+  if (! match) {
+    return undefined;
+  }
+
+  const lat = parseFloat(match[1]) * (match[2] === "S" ? -1 : 1);
+  const lon = parseFloat(match[3]) * (match[4] === "W" ? -1 : 1);
+
+  return { lat, lon };
+}
+
+async function invokeWeatherSearch(input) {
+  const {Serper } = require('langchain/tools');
+  const serper = new Serper();
+  const geoRes = await serper._call(`${input} long lat`);
+  const { lat, lon } = parseGeolocation(geoRes);
 
   const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_hours,precipitation_probability_max,windspeed_10m_max&forecast_days=3&timezone=auto`)
   const wResJson = await wRes.json();
