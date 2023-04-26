@@ -3,6 +3,8 @@ const fs = require('fs');
 const { Configuration, OpenAIApi } = require("openai");
 const { performance } = require('perf_hooks');
 
+const querystring = require('querystring');
+
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
 });
@@ -120,12 +122,20 @@ async function getChatCompletionCore(ctx, messengerName, messages) {
   }
 }
 
-const prepMessage = { role : 'user', content : `For my next request, you can ask to invoke a Google search to augment your database before replying.
-This is helpful for any request for up-to-date information, or data which you do not have.
+const prepMessage = { role : 'user', content : `For my next message, you can invoke an additional tool to augment your knowledge before replying.
+You have the following tools available:
 
+TOOL: SEARCH - performs a Google search and returns results from the top page. FORMAT: search prompt.
+TOOL: WEATHER - preferred tool for weather information. FORMAT: City, Country. Data returned as a 5-day weather data in JSON format.
+
+This is helpful for any request about up-to-date information, or data which you do not have, as your knowledge is updated to September 2021 and it is now April 2023.
 At any case where such data may be helpful, please reply with the following format:
 
 TOOL=SEARCH TOOL_INPUT=<search prompt>
+
+In all other cases, start your reply with:
+
+ANSWER=<your answer>
 
 DO NOT DEVIATE FROM THIS FORMAT, KEEPING ALL FORMATTING OPTIONS SUCH AS UPPERCASE/LOWERCASE, EXACT WORDS ETC EXACTLY THE SAME.
 
@@ -133,70 +143,18 @@ I will perform that search and provide you with the result in a separate message
 Otherwise, provide your answer.
 
 IT IS CRITICAL THAT YOUR REPLY WILL ONLY USE THIS EXACT FORMAT, WITH NO OTHER CHARACTERS BEFORE OR AFTER IT.
-TODAY IS April 24th, 2023, AND YOUR DATABASE ABOUT WORLD EVENTS CONTAINS EVENTS UNTIL 2020.
+
+Note: Next message should be treated as if it is part of a natural chat containing all previous messages, in chronological order.
 `
 };
 
-const prepReplyMessage = { role : 'assistant', content : `Understood! Please proceed with your request.` };
-
-async function getChatCompletionGoogleData(ctx, messengerName, messages) {
-  const parsedMessages = deepClone(messages);
-
-  const askPrompt = `Provide a Google search prompt that will provide relevant information for the following request:
-
-REQUEST: ${parsedMessages[parsedMessages.length - 1].content}
-
-ONLY PROVIDE THE PROMPT, WITH NO EXTRA COMMENTS, PREFIXES OR SUFFIXES.`
-
-  parsedMessages[parsedMessages.length - 1].content = askPrompt;
-
-  const searchPrompt = await getChatCompletionCore(ctx, messengerName, parsedMessages);
-  console.log(`Requested search prompt=${searchPrompt.response}`);
-
-  const { Serper } = require('langchain/tools');
-  const serper = new Serper();
-
-  const answer = await serper.call(searchPrompt.response);
-
-  return { prompt : searchPrompt.response, answer: answer };
-}
-
-async function getChatCompletionWithSearchResult(ctx, messengerName, messages, googleData) {
-  const parsedMessages = deepClone(messages);
-  const askPrompt = `R1X just performed a Google search with the prompt "${googleData.prompt}", and got this answer: ${googleData.answer}.
-
-ASSUME THIS DATA IS CORRECT AND UP-TO-DATE.
-DO NOT CONTRADICT IT AND DO NOT DOUBT IT.
-IT SUPERSEDES ANY OTHER DATA IN YOUR DATABASE.
-IN YOUR REPLY, DO NOT MENTION ANY CONTRADICTION BETWEEN THIS DATA AND OTHER DATA YOU HAVE.
-THE DATA PROVIDED BY THE GOOGLE SEARCH IS ACCURATE AS OF 2023.
-THE DATA IN THE R1X DATABASE IS ACCURATE AS OF 2020, AND IS THEREFORE OUT OF DATE.
-IN CASE OF ANY CONFLICT BETWEEN THE TWO, THE DATA PROVIDED BY THE GOOGLE SEARCH OVERRIDES THE DATA IN R1X DATABASES.
-
-Please reply to the following message: ${parsedMessages[parsedMessages.length - 1].content}`;
-
-  parsedMessages[parsedMessages.length - 1].content = askPrompt;
-
-  const answer = await getChatCompletionCore(ctx, messengerName, parsedMessages);
-
-  console.log({answer});
-
-  return answer; 
-}
-
+const prepReplyMessage = { role : 'assistant', content : `Understood! Please proceed.` };
 
 async function getChatCompletionWithTools(ctx, messengerName, messages) {
   ctx.log(`Starting getChatCompletionWithTools.`);
 
-//  const parsedMessages = await dbMessages2Messages(messages);
-
-//  const googleData = await getChatCompletionGoogleData(ctx, messengerName, parsedMessages);
-//  const answer = await getChatCompletionWithSearchResult(ctx, messengerName, parsedMessages, googleData);
-
-//  return answer;
-
-  const parsedMessages = deepClone(messages);
-  //const parsedMessages = await dbMessages2Messages(messages);
+  //const parsedMessages = deepClone(messages);
+  const parsedMessages = await dbMessages2Messages(messages);
 
   const prevResponses = [];
   const ask = parsedMessages[parsedMessages.length - 1];
@@ -204,8 +162,7 @@ async function getChatCompletionWithTools(ctx, messengerName, messages) {
 
   for (let i = 0; i < 2; i++) {
     ctx.log(`Invoking completionIterativeStep #${i} ASK=${ask}`);
-    const { answer, tool, input } = await completionIterativeStep(ctx, deepClone(history), ask, prevResponses);
-    ctx.log({history});
+    const { answer, tool, input } = await completionIterativeStep(ctx, messengerName, deepClone(history), ask, prevResponses);
     ctx.log(`completionIterativeStep done, answer=${answer} tool=${tool} input=${input}`);
 
     if (answer) {
@@ -218,7 +175,7 @@ async function getChatCompletionWithTools(ctx, messengerName, messages) {
 
     if (tool && input) {
       const response = await invokeTool(tool, input);
-      prevResponses.push(`TOOL=${tool}, TOOL_INPUT=${input}, ACCURACY=100%, RESPONSE=${response}'`);
+      prevResponses.push(`TOOL=${tool}, TOOL_INPUT=${input}, ACCURACY=100%, DATE=April 25 2023\n${response}'`);
     }
   }
 
@@ -226,20 +183,20 @@ async function getChatCompletionWithTools(ctx, messengerName, messages) {
   //return getChatCompletion(ctx, messengerName, messages);
 }
 
-async function completionIterativeStep(ctx, history, ask, prevResponses) {
+async function completionIterativeStep(ctx, messengerName, history, ask, prevResponses) {
   const result = { answer : null, tool : null, input : null };
 
   const messages = history;
 
   let newRequest = { role : 'user', content : '' };
-  newRequest.content += `Request: ${ask.content}`;
+  newRequest.content += `Message: ${ask.content}`;
 
   if (prevResponses.length > 0) {
     newRequest.content += `
-You also have data from previous tool invocations requested by you.
-ASSUME THIS DATA IS CORRECT AND UP-TO-DATE. DO NOT CONTRADICT IT AND DO NOT DOUBT IT.
-IT SUPERSEDES ANY OTHER DATA IN YOUR DATABASE.
-THE DATA IN THE R1X DATABASE IS ACCURATE AS OF 2020, AND THEREFORE MAY BE OUT OF DATE.
+You also have data from previous tool invocations.
+DO NOT CONTRADICT IT AND DO NOT DOUBT IT. IT SUPERSEDES ANY OTHER DATA YOU ARE AWARE OF.
+DO NOT MENTION TO THE USER THIS DATA WAS RETURNED BY A SEARCH TOOL OR PROVIDED TO YOU IN ANY WAY.
+DO NOT PROVIDE THE TOOL INVOCATION RESPONSE LINE IN YOUR REPLY.
 
 Data:
 
@@ -254,7 +211,7 @@ ${prevResponses.join('\n')}
 
   messages.push(newRequest);
 
-  const reply = await getChatCompletionCore(ctx, `wa`, messages);
+  const reply = await getChatCompletionCore(ctx, messengerName, messages);
   ctx.log({reply});
 
   result.answer = getAnswer(reply.response);
@@ -287,7 +244,7 @@ function getAnswer(reply) {
     return null;
   }
 
-  return removePrefix(reply, 'ANSWER=');
+  return removePrefix(removePrefix(reply, 'ANSWER='), 'ANSWER: ');
 }
 
 function getAction(reply) {
@@ -311,7 +268,27 @@ async function invokeTool(tool, input) {
     return answer;
   }
 
+  if (tool == 'WEATHER') {
+    const answer = invokeWeatherSearch(input);
+    
+    return answer;
+  }
+
   return null;
+}
+
+async function invokeWeatherSearch(input) {
+  const encodedParams = querystring.encode({ name : input, count : 1, language : 'en', format : 'json' });
+  const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${encodedParams}`);
+  const geoResJson = await geoRes.json();
+
+  const lat = geoResJson.results[0].latitude;
+  const lon = geoResJson.results[0].longitude;
+
+  const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_hours,precipitation_probability_max,windspeed_10m_max&forecast_days=3&timezone=auto`)
+  const wResJson = await wRes.json();
+
+  return JSON.stringify(wResJson.daily);
 }
 
 async function createTranscription(ctx, mp3FilePath) {
@@ -325,14 +302,6 @@ async function createTranscription(ctx, mp3FilePath) {
   ctx.log(`createTranscription: timeTaken=${timeTaken}ms transcription=${transcription.data.text}`);
   return transcription.data.text;
 }
-
-/*
-ALWAYS FETCH DATA FROM A TOOL IF IT CAN HELP GENERATE A MORE ACCURATE RESULT.
-DO NOT DEVIATE FROM TOOL-PROVIDED INFORMATION IN ANY MANNER.
-ALWAYS RELY ON IT, AND NEVER CONTRADICT IT - EVEN IF YOUR INTERNAL DATABASE INDICATES OTHERWISE.
-NEVER INFORM USER TOOL-PROVIDED INFORMATION MAY BE INCORRECT.
-DO NOT MENTION DATA WAS PROVIDED BY TOOL IN ANY MANNER.
-*/
 
 module.exports = {
   getChatCompletion,
