@@ -152,36 +152,39 @@ Note: Next message should be treated as if it is part of a natural chat containi
 const prepReplyMessage = { role : 'assistant', content : `Understood! Please proceed.` };
 
 async function getChatCompletionWithTools(ctx, messengerName, messages) {
-  ctx.log(`Starting getChatCompletionWithTools.`);
+  try {
+    ctx.log(`Starting getChatCompletionWithTools.`);
 
-  //const parsedMessages = deepClone(messages);
-  const parsedMessages = await dbMessages2Messages(messages);
+    //const parsedMessages = deepClone(messages);
+    const parsedMessages = await dbMessages2Messages(messages);
 
-  const prevResponses = [];
-  const ask = parsedMessages[parsedMessages.length - 1];
-  const history = parsedMessages.slice(0, -1);
+    const prevResponses = [];
+    const ask = parsedMessages[parsedMessages.length - 1];
+    const history = parsedMessages.slice(0, -1);
 
-  for (let i = 0; i < 2; i++) {
-    ctx.log(`Invoking completionIterativeStep #${i} ASK=${ask}`);
-    const { answer, tool, input } = await completionIterativeStep(ctx, messengerName, deepClone(history), ask, prevResponses);
-    ctx.log(`completionIterativeStep done, answer=${answer} tool=${tool} input=${input}`);
+    for (let i = 0; i < 2; i++) {
+      ctx.log(`Invoking completionIterativeStep #${i} ASK=${ask}`);
+      const { answer, tool, input } = await completionIterativeStep(ctx, messengerName, deepClone(history), ask, prevResponses);
+      ctx.log(`completionIterativeStep done, answer=${answer} tool=${tool} input=${input}`);
 
-    if (answer) {
-      return  {
-        response : answer,
-        promptTokens : 0,
-        completionTokens : 0
+      if (answer) {
+        return  {
+          response : answer,
+          promptTokens : 0,
+          completionTokens : 0
+        }
+      }
+
+      if (tool && input) {
+        const response = await invokeTool(tool, input);
+        prevResponses.push(`TOOL=${tool}, TOOL_INPUT=${input}, ACCURACY=100%, DATE=${new Date(Date.now()).toDateString()}.\n${response}'`);
       }
     }
-
-    if (tool && input) {
-      const response = await invokeTool(tool, input);
-      prevResponses.push(`TOOL=${tool}, TOOL_INPUT=${input}, ACCURACY=100%, DATE=${new Date(Date.now()).toDateString()}.\n${response}'`);
-    }
+  } catch (e) {
+    ctx.log(`getChatCompletionWithTools: failed generating customized reply, falling back to getChatCompletion.`);
+    ctx.log({e});  
+    return getChatCompletion(ctx, messengerName, messages);
   }
-
-  ctx.log(`getChatCompletionWithTools: failed generating customized reply, falling back to getChatCompletion.`);
-  return getChatCompletion(ctx, messengerName, messages);
 }
 
 async function completionIterativeStep(ctx, messengerName, history, ask, prevResponses) {
