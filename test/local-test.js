@@ -1,5 +1,5 @@
 history = [
-/*    {
+    {
       role: 'assistant',
       content: 'ANSWER: I apologize, but I cannot provide any information about Guy Caspary, as I could not find any relevant or notable persons with that name using my search capabilities. Can you please provide any additional context or details that may help me better understand who you are asking about?'
     },
@@ -41,10 +41,10 @@ history = [
       role: 'assistant',
       content: "ANSWER: Based on the weather forecast for Milan, Italy, tomorrow, which is partly cloudy with highs of 21°C (70°F) and lows of 9°C (48°F), it is recommended that you wear comfortable clothing such as light shirts, pants or skirts, and a jacket or sweater to keep you warm in case the temperature drops. It's advisable to wear clothes in layers, to be prepared for fluctuations in temperatures."
     },
-*/
+
     {
       role: 'user',
-      content: 'what should I wear for work in Tel Aviv tomorrow?'
+      content: 'Who is the uk pm?'
     },
 ];
 
@@ -54,7 +54,7 @@ const { logger, createLoggingContext } = require("../src/utils/logger");
 const { getChatCompletionWithTools } = require("../src/services/open-ai/query-openai");
 
 const ctx = createLoggingContext(0);
-const reply = getChatCompletionWithTools(ctx, 'wa', history);
+const reply = getChatCompletionWithTools(ctx, 'wa', history, true);
 
 console.log({reply});
 
