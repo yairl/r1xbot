@@ -1,0 +1,8 @@
+{ "messages" : [
+    { "role" : "user", "content" : "Is Pele alive?" },
+    { "role" : "assistant", "content" : "According to the latest information available, Pele passed away on December 29, 2022, at the Albert Einstein Israelite Hospital in São Paulo, State of São Paulo, Brazil." },
+    { "role" : "user", "content" : "what is its radius?" },
+    { "role" : "assistant", "content" : "I'm sorry, I'm not sure what you are referring to. Could you please provide more context or clarify your question?" },
+    { "role" : "user", "content" : "tennis ball" }
+] }
+

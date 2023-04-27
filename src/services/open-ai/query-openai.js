@@ -26,11 +26,8 @@ function convertMessageToChatFormat(message) {
 function getSystemMessage(ctx, messengerName) {
   const systemMessage = {
     role: 'system',
-    content: 'You are Robot 1-X (R1X), a helpful assistant.' /*`Robot 1-X (R1X) is a helpful assistant developed by the Planet Express team and integrated into a ${messengerName} chat.
-If R1X does not know, it truthfully says it does not know.
-More information about R1X is available at https://r1x.ai.
-
-Today's date is ${new Date(Date.now()).toDateString()}.`*/
+    content: `You are Robot 1-X (R1X), a helpful assistant developed by the Planet Express team and integrated into a ${messengerName} chat.
+More information about R1X is available at https://r1x.ai.`
   };
 
   return systemMessage;
@@ -123,34 +120,30 @@ async function getChatCompletionCore(ctx, messengerName, messages) {
   }
 }
 
-const prepMessage = { role : 'user', content : `Next, I will provide you with a chat between R1X and a human; last speaker is the user, and your task is to provide R1X's answer. In order to provide the best answer possible, you can invoke an additional tool to augment your knowledge before replying.
+const prepMessage = { role : 'user', content : `Next, I will provide you with a chat between R1X and a human; the chat will be wrapped in a <yair1xigor> tag. Last speaker is the user, and your task is to provide R1X's answer. In order to provide the best answer possible, you can invoke an additional tool to augment your knowledge before replying.
 
 You have the following tools available:
 
-TOOL: SEARCH - performs a Google search and returns key results. Use this tool to provide up-to-date information about world events. Its data is more reliable than your existing knowledge. FORMAT: search prompt.
-TOOL: WEATHER - weather information. Always use this tool if weather information is required. FORMAT: City, Country, both in English. Data returned as a 5-day weather data in JSON format.
+TOOL=SEARCH - performs a Google search and returns key results. Use this tool to provide up-to-date information about world events. Its data is more reliable than your existing knowledge. TOOL_INPUT=search prompt.
+TOOL=WEATHER - weather information. Always use this tool if weather information is required. TOOL_INPUT=City, Country, both in English. Data returned is 5-day weather data in JSON format.
 
-Prefer to use the WEATHER tool, then the SEARCH tool.
-
-Your knowledge is valid up to September 2021 and it is now ${new Date(Date.now()).toDateString()}.
-For any request knowledge about people, stocks, or world events, which requires up to date information, always use one of the tools available to you before replying.
+Today's date is ${new Date(Date.now()).toDateString()}.
+You are trained with knowledge until September 2021.
+If answering requires up-to-date knowledge about people, stocks, or world events, always use one of the tools available to you before replying.
 If human request has no context of time, assume he is referring to current time period.
 In all cases, do not respond that your knowledge is not up to date unless a tool invocation has already happened for you in that context.
 
 For invoking a tool, reply with the following format:
 
-TOOL=<tool> TOOL_INPUT=<search prompt>
+'''TOOL=<tool> TOOL_INPUT=<tool input>'''
 
 I will invoke the tool for you and provide you with the result in a separate message.
-In all other cases, start your reply with:
+Otherwise, provide your final reply in the following format:
 
-ANSWER=<your answer>
+'''ANSWER=<your answer>'''
 
 BE AS STRICT AS POSSIBLE ABOUT ADHERING TO THIS EXACT FORMAT.
-HEN PROVIDING A FINAL ANSWER TO THE USER, NEVER MENTION THE SEARCH AND WEATHER TOOLS DIRECTLY, AND DO NO SUGGEST THAT THE USER UTILIZES THEM.
-
-I will perform that search and provide you with the result in a separate message.
-Otherwise, provide your answer.
+WHEN PROVIDING A FINAL ANSWER TO THE USER, NEVER MENTION THE SEARCH AND WEATHER TOOLS DIRECTLY, AND DO NOT SUGGEST THAT THE USER UTILIZES THEM.
 
 IT IS CRITICAL THAT YOUR REPLY WILL ONLY USE THIS EXACT FORMAT, WITH NO OTHER CHARACTERS BEFORE OR AFTER IT.
 `
@@ -208,17 +201,17 @@ async function completionIterativeStep(ctx, messengerName, history, ask, prevRes
 
   let newRequest = { role : 'user', content : '' };
 
-  newRequest.content += 'Here is the chat so far:\n';
+  newRequest.content += 'Here is the chat so far:\n<yair1xigor>';
   for (const message of history) {
     const speaker = (message.role == 'assistant' ? 'R1X' : 'Human');
     newRequest.content += `\n${speaker}: ${message.content}`;
   }
 
-  newRequest.content += `\nHuman: ${ask.content}\nR1X:`;
+  newRequest.content += `\nHuman: ${ask.content}\nR1X:</yair1xigor>`;
 
   if (prevResponses.length > 0) {
     newRequest.content += `
-You also have the following data from tool invocations.
+You have the following data from tool invocations.
 DO NOT CONTRADICT IT AND DO NOT DOUBT IT. IT SUPERSEDES ANY OTHER DATA YOU ARE AWARE OF.
 DO NOT MENTION TO THE USER THIS DATA WAS RETURNED BY A SEARCH TOOL OR PROVIDED TO YOU IN ANY WAY.
 DO NOT PROVIDE THE TOOL INVOCATION RESPONSE LINE IN YOUR REPLY.
@@ -230,17 +223,12 @@ ${prevResponses.join('\n')}
 `;
   };
 
-    ctx.log(prepMessage.content);
-    ctx.log(prepReplyMessage.content);
-    ctx.log(newRequest.content);
-    
   messages.push(prepMessage);
   messages.push(prepReplyMessage);
 
   messages.push(newRequest);
 
   const reply = await getChatCompletionCore(ctx, messengerName, messages);
-  //ctx.log({reply});
 
   result.answer = getAnswer(reply.response);
   if (result.answer) {
