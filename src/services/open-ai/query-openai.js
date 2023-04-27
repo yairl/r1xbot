@@ -26,11 +26,11 @@ function convertMessageToChatFormat(message) {
 function getSystemMessage(ctx, messengerName) {
   const systemMessage = {
     role: 'system',
-    content: `Robot 1-X (R1X) is a helpful assistant developed by the Planet Express team and integrated into a ${messengerName} chat.
+    content: 'You are Robot 1-X (R1X), a helpful assistant.' /*`Robot 1-X (R1X) is a helpful assistant developed by the Planet Express team and integrated into a ${messengerName} chat.
 If R1X does not know, it truthfully says it does not know.
 More information about R1X is available at https://r1x.ai.
 
-Today's date is ${new Date(Date.now()).toDateString()}.`
+Today's date is ${new Date(Date.now()).toDateString()}.`*/
   };
 
   return systemMessage;
@@ -69,7 +69,7 @@ async function getLimitedMessageHistory(ctx, messages, promptTemplate) {
 
   let prevRole = undefined;
 
-  console.log( {messagesUptoMaxTokens});
+  //ctx.log( {messagesUptoMaxTokens});
 
   for (const message of messagesUptoMaxTokens) {
       if (message.role == prevRole) {
@@ -87,21 +87,21 @@ async function getLimitedMessageHistory(ctx, messages, promptTemplate) {
 async function getChatCompletion(ctx, messengerName, messages) {
   const parsedMessages = await dbMessages2Messages(messages);
 
-  return getChatCompletionCore(ctx, messengerName, parsedMessages);
+  const systemMessage = getSystemMessage(ctx, messengerName);
+  const messagesUptoMaxTokens = await getLimitedMessageHistory(ctx, parsedMessages, systemMessage);
+    
+  return getChatCompletionCore(ctx, messengerName, messagesUptoMaxTokens);
 }
 
 async function getChatCompletionCore(ctx, messengerName, messages) {
-  const systemMessage = getSystemMessage(ctx, messengerName);
-  const messagesUptoMaxTokens = await getLimitedMessageHistory(ctx, messages, systemMessage);
-
-  ctx.log('getChatCompletionCore messagesUptoMaxTokens: ', messagesUptoMaxTokens);
+  ctx.log('getChatCompletionCore messages: ', messages);
 
   try {
     ctx.log('invoking completion request.');
     const completion = await openai.createChatCompletion({
       model: process.env.OPENAI_MODEL,
-      messages: messagesUptoMaxTokens,
-      temperature: 0.2
+      messages: messages,
+      temperature: 0
     });
 
     ctx.log('getChatCompletionCore response: ', completion.data.choices[0].message.content);
@@ -123,51 +123,62 @@ async function getChatCompletionCore(ctx, messengerName, messages) {
   }
 }
 
-const prepMessage = { role : 'user', content : `For my next message, you can invoke an additional tool to augment your knowledge before replying.
+const prepMessage = { role : 'user', content : `Next, I will provide you with a chat between R1X and a human; last speaker is the user, and your task is to provide R1X's answer. In order to provide the best answer possible, you can invoke an additional tool to augment your knowledge before replying.
+
 You have the following tools available:
 
-TOOL: SEARCH - performs a Google search and returns results from the top page. FORMAT: search prompt.
-TOOL: WEATHER - preferred tool for weather information. FORMAT: City, Country, both in English. Data returned as a 5-day weather data in JSON format.
+TOOL: SEARCH - performs a Google search and returns key results. Use this tool to provide up-to-date information about world events. Its data is more reliable than your existing knowledge. FORMAT: search prompt.
+TOOL: WEATHER - weather information. Always use this tool if weather information is required. FORMAT: City, Country, both in English. Data returned as a 5-day weather data in JSON format.
 
-Your knowledge is updated to September 2021 and it is now  ${new Date(Date.now()).toDateString()}.
-At any case where such data may be helpful, please reply with the following format:
+Prefer to use the WEATHER tool, then the SEARCH tool.
 
-TOOL=SEARCH TOOL_INPUT=<search prompt>
+Your knowledge is valid up to September 2021 and it is now ${new Date(Date.now()).toDateString()}.
+For any request knowledge about people, stocks, or world events, which requires up to date information, always use one of the tools available to you before replying.
+If human request has no context of time, assume he is referring to current time period.
+In all cases, do not respond that your knowledge is not up to date unless a tool invocation has already happened for you in that context.
 
+For invoking a tool, reply with the following format:
+
+TOOL=<tool> TOOL_INPUT=<search prompt>
+
+I will invoke the tool for you and provide you with the result in a separate message.
 In all other cases, start your reply with:
 
 ANSWER=<your answer>
 
-DO NOT DEVIATE FROM THIS FORMAT, KEEPING ALL FORMATTING OPTIONS SUCH AS UPPERCASE/LOWERCASE, EXACT WORDS ETC EXACTLY THE SAME.
+BE AS STRICT AS POSSIBLE ABOUT ADHERING TO THIS EXACT FORMAT.
+HEN PROVIDING A FINAL ANSWER TO THE USER, NEVER MENTION THE SEARCH AND WEATHER TOOLS DIRECTLY, AND DO NO SUGGEST THAT THE USER UTILIZES THEM.
 
 I will perform that search and provide you with the result in a separate message.
 Otherwise, provide your answer.
 
 IT IS CRITICAL THAT YOUR REPLY WILL ONLY USE THIS EXACT FORMAT, WITH NO OTHER CHARACTERS BEFORE OR AFTER IT.
-
-Note: Next message should be treated as if it is part of a natural chat containing all previous messages, in chronological order.
 `
 };
 
-const prepReplyMessage = { role : 'assistant', content : `Understood! Please proceed.` };
+const prepReplyMessage = { role : 'assistant', content : `Understood. Please provide me with the chat between R1X and the human.` };
 
-async function getChatCompletionWithTools(ctx, messengerName, messages) {
+async function getChatCompletionWithTools(ctx, messengerName, messages, direct) {
   try {
     ctx.log(`Starting getChatCompletionWithTools.`);
 
     //const parsedMessages = deepClone(messages);
-    const parsedMessages = await dbMessages2Messages(messages);
-
+    const parsedMessages = direct ? await deepClone(messages) : await dbMessages2Messages(messages);
+      
     const prevResponses = [];
     const ask = parsedMessages[parsedMessages.length - 1];
-    const history = parsedMessages.slice(0, -1);
 
+    const systemMessage = getSystemMessage(ctx, messengerName);
+    const history = await getLimitedMessageHistory(ctx, parsedMessages.slice(0, -1), systemMessage);
+      
     for (let i = 0; i < 2; i++) {
       ctx.log(`Invoking completionIterativeStep #${i} ASK=${ask}`);
       const { answer, tool, input } = await completionIterativeStep(ctx, messengerName, deepClone(history), ask, prevResponses);
       ctx.log(`completionIterativeStep done, answer=${answer} tool=${tool} input=${input}`);
 
       if (answer) {
+          ctx.log(`Answer returned: ${answer}`);
+	  
         return  {
           response : answer,
           promptTokens : 0,
@@ -176,28 +187,38 @@ async function getChatCompletionWithTools(ctx, messengerName, messages) {
       }
 
       if (tool && input) {
-        const response = await invokeTool(tool, input);
-        prevResponses.push(`TOOL=${tool}, TOOL_INPUT=${input}, ACCURACY=100%, DATE=${new Date(Date.now()).toDateString()}.\n${response}'`);
+        ctx.log(`Invoking TOOL ${tool} with INPUT ${input}`); 	    
+        const response = await invokeTool(ctx, tool, input);
+        prevResponses.push(`TOOL=${tool}, TOOL_INPUT=${input}, ACCURACY=100%, DATE=${new Date(Date.now()).toDateString()} RESPONSE=${response}`);
       }
     }
   } catch (e) {
-    ctx.log(`getChatCompletionWithTools: failed generating customized reply, falling back to getChatCompletion.`);
     ctx.log({e});  
-    return getChatCompletion(ctx, messengerName, messages);
   }
+
+  ctx.log(`getChatCompletionWithTools: failed generating customized reply, falling back to getChatCompletion.`);
+
+  return getChatCompletion(ctx, messengerName, messages);
 }
 
 async function completionIterativeStep(ctx, messengerName, history, ask, prevResponses) {
   const result = { answer : null, tool : null, input : null };
 
-  const messages = history;
+  const messages = [];
 
   let newRequest = { role : 'user', content : '' };
-  newRequest.content += `Message: ${ask.content}`;
+
+  newRequest.content += 'Here is the chat so far:\n';
+  for (const message of history) {
+    const speaker = (message.role == 'assistant' ? 'R1X' : 'Human');
+    newRequest.content += `\n${speaker}: ${message.content}`;
+  }
+
+  newRequest.content += `\nHuman: ${ask.content}\nR1X:`;
 
   if (prevResponses.length > 0) {
     newRequest.content += `
-You also have data from previous tool invocations.
+You also have the following data from tool invocations.
 DO NOT CONTRADICT IT AND DO NOT DOUBT IT. IT SUPERSEDES ANY OTHER DATA YOU ARE AWARE OF.
 DO NOT MENTION TO THE USER THIS DATA WAS RETURNED BY A SEARCH TOOL OR PROVIDED TO YOU IN ANY WAY.
 DO NOT PROVIDE THE TOOL INVOCATION RESPONSE LINE IN YOUR REPLY.
@@ -209,14 +230,17 @@ ${prevResponses.join('\n')}
 `;
   };
 
-
+    ctx.log(prepMessage.content);
+    ctx.log(prepReplyMessage.content);
+    ctx.log(newRequest.content);
+    
   messages.push(prepMessage);
   messages.push(prepReplyMessage);
 
   messages.push(newRequest);
 
   const reply = await getChatCompletionCore(ctx, messengerName, messages);
-  ctx.log({reply});
+  //ctx.log({reply});
 
   result.answer = getAnswer(reply.response);
   if (result.answer) {
@@ -262,18 +286,22 @@ function getAction(reply) {
   return null;
 }
 
-async function invokeTool(tool, input) {
-  if (tool == 'SEARCH') {
+async function invokeTool(ctx, tool, input) {
+  const toolCanon = tool.trim().toUpperCase();
+
+  if (toolCanon.startsWith('SEARCH')) {
     const { Serper } = require('langchain/tools');
 
+    ctx.log(`Invoking Google search using SERPER, input=${input}`);
     const serper = new Serper();
     const answer = await serper.call(input);
-
+    ctx.log(`SERPER search result: ${answer}`);
+      
     return answer;
   }
 
-  if (tool == 'WEATHER') {
-    const answer = invokeWeatherSearch(input);
+  if (toolCanon.startsWith('WEATHER')) {
+    const answer = invokeWeatherSearch(ctx, input);
     
     return answer;
   }
@@ -295,11 +323,15 @@ function parseGeolocation(locationData) {
   return { lat, lon };
 }
 
-async function invokeWeatherSearch(input) {
-  const {Serper } = require('langchain/tools');
+async function invokeWeatherSearch(ctx, input) {
+  ctx.log(`invokeWeatherSearch, input=${input}`);
+
+  const { Serper } = require('langchain/tools');
   const serper = new Serper();
-  const geoRes = await serper._call(`${input} long lat`);
+  const geoRes = await serper.call(`${input} long lat`);
   const { lat, lon } = parseGeolocation(geoRes);
+
+  ctx.log(`Geolocation: lat=${lat} lon=${lon}`);
 
   const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_hours,precipitation_probability_max,windspeed_10m_max&forecast_days=3&timezone=auto`)
   const wResJson = await wRes.json();
