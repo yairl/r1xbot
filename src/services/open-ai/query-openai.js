@@ -51,6 +51,8 @@ async function getLimitedMessageHistory(ctx, messages, promptTemplate) {
   const softTokenLimit = 2048;
   const hardTokenLimit = 4000;
 
+  messages.reverse();
+    
   // get list of messages that will consume upto maxToken. This includes also the system message.
   const messagesUptoMaxTokens = await tokenPredictor.getMessagesUptoMaxTokens(ctx, promptTemplate, messages, softTokenLimit, hardTokenLimit);
 
@@ -58,6 +60,8 @@ async function getLimitedMessageHistory(ctx, messages, promptTemplate) {
     return [];
   }
 
+  messagesUptoMaxTokens.reverse();
+    
   if (messagesUptoMaxTokens[0].role == 'assistant') {
     messagesUptoMaxTokens.shift();
   }
@@ -91,7 +95,7 @@ async function getChatCompletion(ctx, messengerName, messages) {
 }
 
 async function getChatCompletionCore(ctx, messengerName, messages) {
-  ctx.log('getChatCompletionCore messages: ', messages);
+  //ctx.log('getChatCompletionCore messages: ', messages);
 
   try {
     ctx.log('invoking completion request.');
@@ -122,41 +126,56 @@ async function getChatCompletionCore(ctx, messengerName, messages) {
 
 const prepMessage = { role : 'user', content : `You are Robot 1-X (R1X), a helpful assistant developed by the Planet Express team and integrated into a WhatsApp chat. More information about you is available at https://r1x.ai.
 
-I will provide you with a chat between R1X and a human; the chat will be wrapped with tags, as such: <yair1xigor>CHAT</yair1xigor>. Last speaker is the user, and your task is to provide R1X's answer.
+I will provide you with a chat between R1X and a human; the chat will be wrapped with tags, as such: <yair1xigor>CHAT</yair1xigor>. Last speaker is the user.
+I will also provide you with prefetched data you can rely on for your answers; this data will be wrapped with tags, as such: <r1xdata>DATA</r1xdata>.
+
+Your task is to provide R1X's answer.
 
 You can invoke one of the following tools to augment your knowledge before replying:
 
-TOOL_NAME="SEARCH" - performs a Google search and returns key results. Use this tool to provide up-to-date information about world events. Its data is more reliable than your existing knowledge. TOOL_INPUT=search prompt.
-TOOL_NAME="WEATHER" - per-location weather forecast. Use this tool if weather information is needed for a known location. NEVER use this tool if specific location is not known. TOOL_INPUT=City, Country, both in English. Data returned is 5-day weather data in JSON format.
+SEARCH: performs a Google search and returns key results. Use this tool to provide up-to-date information about world events. Its data is more reliable than your existing knowledge. TOOL_INPUT=search prompt. IMPORTANT: do not invoke this tool again if it was already invoked, and you have the result of the previous invocation.
+WEATHER: per-location 5-day weather forecast, at day granularity. It does not provide a finer-grained forecast. TOOL_INPUT=<City, Country>, both in English. TOOL_INPUT should always be a well-defined settlement and country/state. IMPORTANT: If you believe the right value for TOOL_INPUT is unknown/my location/similar, do not ask for the tool to be invoked and instead use the ANSWER format to ask the user for location information.
 
-For invoking a tool, reply with the following format:
+For invoking a tool, provide your reply in a JSON format, with the following fields: TOOL, TOOL_INPUT, REASON.
+Examples:
 
-TOOL=<tool name> TOOL_INPUT=<tool input> REASON=<reason this tool is requested, and explanation of how it matches all requirements for invoking the tool>
+{ "TOOL" : "SEARCH", "TOOL_INPUT" : "Who is the current UK PM?", "REASON" : "Human requested data about UK government." }
+{ "TOOL" : "WEATHER", "TOOL_INPUT" : "Tel Aviv, Israel", "REASON" : "Human is located in Tel Aviv, Israel and asked what to wear tomorrow." }
 
-I will invoke the tool for you and provide you with the result in a separate message. Examples:
+Please use these exact formats, and do not deviate.
 
-TOOL=SEARCH TOOL_INPUT=Who is the UK PM? REASON=Human requested information about UK government, and instructions ask R1X to search when asked about people.
-TOOL=WEATHER TOOL_INPUT=Tel Aviv, Israel REASON=Human is located in Tel Aviv, Israel and asked what to wear tomorrow.
+Otherwise, provide your final reply in a JSON format, with the following fields: ANSWER.
+Example:
 
-Otherwise, provide your final reply in the following format:
-
-ANSWER=<your answer>
-
-For example:
-
-ANSWER=Rishi Sunak
+{ "ANSWER" : "Rishi Sunak" }
 
 Today's date is ${new Date(Date.now()).toDateString()}.
 You are trained with knowledge until September 2021.
 For factual information about people, stocks and world events, use one of the tools available to you before replying.
-For fiction requests, use your knowledge and creativity to answer.
+For fiction requests, use your knowledge and creativity to answer. Be verbose.
 If human request has no context of time, assume he is referring to current time period.
-In all cases, do not respond that your knowledge is not up to date unless a tool invocation has already happened for you in that context.
+In all cases, do not respond that your knowledge is not up to date unless a tool invocation has already happened for you in that context. Additionally, do not invoke a tool if the required TOOL_INPUT is unknown, vague, or not provided. Always follow the IMPORTANT note in the tool description.
+Finally, do not invoke a tool if the required information was already provided by a previous tool invocation, whose data is provided to you.
 
-BE AS STRICT AS POSSIBLE ABOUT ADHERING TO THIS EXACT FORMAT.
+
+Don't provide your response until you made sure it is valid, and meets all prerequisites laid out for tool invocation.
+
 WHEN PROVIDING A FINAL ANSWER TO THE USER, NEVER MENTION THE SEARCH AND WEATHER TOOLS DIRECTLY, AND DO NOT SUGGEST THAT THE USER UTILIZES THEM.
 
-IT IS CRITICAL THAT YOUR REPLY WILL ONLY USE THIS EXACT FORMAT, WITH NO OTHER CHARACTERS BEFORE OR AFTER IT.
+Your tasks are as follows:
+
+1. Formulate human's request
+2. Formulate the human's request in as a self-contained question, including all relevant data from previous messages in the chat, as well as data from tool invocations.
+3. State which tool can provide the most information, and with what input. List all prerequisites for the tool and show how each is met.
+4. Formulate the tool invocation request, or answer, in JSON format as detailed above. JSON should be delimited as <yair1xigoresponse>RESPONSE</yair1xigoresponse>.
+
+Use the following format:
+
+Human's request: <request>
+Relevant
+Self contained request: <human's request, including all relevant data from chat history>
+Tool request: <information about which tool is most relevant, if any, including explanation how each prerequisite for the tool is met with detailed data>
+Response: <yair1xigoresponse><tool request or answer in JSON format></yair1xigoresponse>
 `
 };
 
@@ -170,14 +189,13 @@ async function getChatCompletionWithTools(ctx, messengerName, messages, direct) 
     const parsedMessages = direct ? await deepClone(messages) : await dbMessages2Messages(messages);
       
     const prevResponses = [];
-    const ask = parsedMessages[parsedMessages.length - 1];
 
     const systemMessage = getSystemMessage(ctx, messengerName);
-    const history = await getLimitedMessageHistory(ctx, parsedMessages.slice(0, -1), systemMessage);
+    const history = await getLimitedMessageHistory(ctx, parsedMessages, systemMessage);
       
     for (let i = 0; i < 2; i++) {
-      ctx.log(`Invoking completionIterativeStep #${i} ASK=${ask}`);
-      const { answer, tool, input } = await completionIterativeStep(ctx, messengerName, deepClone(history), ask, prevResponses);
+      ctx.log(`Invoking completionIterativeStep #${i}`);
+      const { answer, tool, input } = await completionIterativeStep(ctx, messengerName, deepClone(history), prevResponses);
       ctx.log(`completionIterativeStep done, answer=${answer} tool=${tool} input=${input}`);
 
       if (answer) {
@@ -205,7 +223,7 @@ async function getChatCompletionWithTools(ctx, messengerName, messages, direct) 
   return getChatCompletion(ctx, messengerName, messages);
 }
 
-async function completionIterativeStep(ctx, messengerName, history, ask, prevResponses) {
+async function completionIterativeStep(ctx, messengerName, history, prevResponses) {
   const result = { answer : null, tool : null, input : null };
 
   const messages = [];
@@ -215,21 +233,19 @@ async function completionIterativeStep(ctx, messengerName, history, ask, prevRes
   newRequest.content += 'Here is the chat so far:\n<yair1xigor>';
   for (const message of history) {
     const speaker = (message.role == 'assistant' ? 'R1X' : 'Human');
-    newRequest.content += `\n${speaker}: ${message.content}`;
+    newRequest.content += `\n<${speaker}>: ${message.content}`;
   }
 
-  newRequest.content += `\nHuman: ${ask.content}\nR1X:</yair1xigor>`;
+  newRequest.content += `\n<R1X:></yair1xigor>`;
 
   if (prevResponses.length > 0) {
     newRequest.content += `
 You have the following data from tool invocations.
 DO NOT CONTRADICT IT AND DO NOT DOUBT IT. IT SUPERSEDES ANY OTHER DATA YOU ARE AWARE OF.
 DO NOT MENTION TO THE USER THIS DATA WAS RETURNED BY A SEARCH TOOL OR PROVIDED TO YOU IN ANY WAY.
-DO NOT PROVIDE THE TOOL INVOCATION RESPONSE LINE IN YOUR REPLY.
+DO NOT PROVIDE THE TOOL INVOCATION RESPONSE LINE IN YOUR REPLY. DO NOT ASK FOR A TOOL TO BE INVOKED AGAIN, IF THE DATA REQUIRED IS ALREADY AVAILABLE IN THIS SECTION.
 
-Data:
-
-${prevResponses.join('\n')}
+<r1xdata>${prevResponses.join('\n')}</r1xdata>
 
 `;
   };
@@ -241,48 +257,29 @@ ${prevResponses.join('\n')}
 
   const reply = await getChatCompletionCore(ctx, messengerName, messages);
 
-  result.answer = getAnswer(reply.response);
+  const regex = /<yair1xigoresponse>(.*?)<\/yair1xigoresponse>/s;
+  const matches = regex.exec(reply.response);
+
+  if (! matches) {
+      return 0;
+  }
+    
+  const jsonReply = JSON.parse(matches[1]);
+
+  result.answer = jsonReply.ANSWER;
   if (result.answer) {
     return result;
   }
 
-  const { tool, input } = getAction(reply.response);
-  if (tool && input) {
-    result.tool = tool;
-    result.input = input;
+  if (jsonReply.TOOL && jsonReply.TOOL_INPUT) {
+    result.tool = jsonReply.TOOL;
+    result.input = jsonReply.TOOL_INPUT;
 
     return result;
   }
 
   // Should never get here.
   return result; 
-}
-
-function removePrefix(str, prefix) {
-  if (! str.startsWith(prefix)) {
-    return str;
-  }
-
-  return str.substr(prefix.length);
-}
-
-function getAnswer(reply) {
-  if (reply.startsWith('TOOL=')) {
-    return null;
-  }
-
-  return removePrefix(removePrefix(reply, 'ANSWER='), 'ANSWER: ');
-}
-
-function getAction(reply) {
-  const pattern = /TOOL=(.+)\s* \s*TOOL_INPUT=(.+)/i;
-  const match = pattern.exec(reply);
-
-  if (match) {
-    return { tool: match[1], input: match[2] };
-  }
-
-  return null;
 }
 
 async function invokeTool(ctx, tool, input) {
