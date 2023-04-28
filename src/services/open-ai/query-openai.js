@@ -98,7 +98,7 @@ async function getChatCompletionCore(ctx, messengerName, messages) {
     const completion = await openai.createChatCompletion({
       model: process.env.OPENAI_MODEL,
       messages: messages,
-      temperature: 0
+      temperature: 0.2
     });
 
     ctx.log('getChatCompletionCore response: ', completion.data.choices[0].message.content);
@@ -124,18 +124,19 @@ const prepMessage = { role : 'user', content : `Next, I will provide you with a 
 
 You have the following tools available:
 
-TOOL=SEARCH - performs a Google search and returns key results. Use this tool to provide up-to-date information about world events. Its data is more reliable than your existing knowledge. TOOL_INPUT=search prompt.
-TOOL=WEATHER - weather information. Always use this tool if weather information is required. TOOL_INPUT=City, Country, both in English. Data returned is 5-day weather data in JSON format.
+TOOL_NAME="SEARCH" - performs a Google search and returns key results. Use this tool to provide up-to-date information about world events. Its data is more reliable than your existing knowledge. TOOL_INPUT=search prompt. REASON=why you chose to invoke this tool.
+TOOL_NAME="WEATHER" - weather information. Always use this tool if weather information is required. TOOL_INPUT=City, Country, both in English. Data returned is 5-day weather data in JSON format.
 
 Today's date is ${new Date(Date.now()).toDateString()}.
 You are trained with knowledge until September 2021.
-If answering requires up-to-date knowledge about people, stocks, or world events, always use one of the tools available to you before replying.
+For factual information about people, stocks and world events, use one of the tools available to you before replying.
+For fiction requests, use your knowledge and creativity to answer.
 If human request has no context of time, assume he is referring to current time period.
 In all cases, do not respond that your knowledge is not up to date unless a tool invocation has already happened for you in that context.
 
 For invoking a tool, reply with the following format:
 
-'''TOOL=<tool> TOOL_INPUT=<tool input>'''
+'''TOOL=<tool name> TOOL_INPUT=<tool input> REASON=<reason this tool is requested>'''
 
 I will invoke the tool for you and provide you with the result in a separate message.
 Otherwise, provide your final reply in the following format:
