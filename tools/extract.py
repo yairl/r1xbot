@@ -12,9 +12,8 @@ def extract_messages(log_file, output_file):
 
         if matches:
             last_instance = matches[-1][-1]
-            role_pattern = r"role: '([^']*)'"
-            content_pattern = r"content: '([^']*)'"
-
+            role_pattern = r"role: ['\"]([^'\"]*)['\"]"
+            content_pattern = r"content: ['\"]([^'\"]*)['\"]"
             roles = re.findall(role_pattern, last_instance)
             contents = re.findall(content_pattern, last_instance)
 
