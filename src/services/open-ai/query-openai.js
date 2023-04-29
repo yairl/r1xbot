@@ -187,7 +187,8 @@ async function getChatCompletionWithTools(ctx, messengerName, messages, direct) 
 
     //const parsedMessages = deepClone(messages);
     const parsedMessages = direct ? await deepClone(messages) : await dbMessages2Messages(messages);
-    ctx.log({parsedMessages});
+    fs.writeFileSync('repro.json', JSON.stringify( {messages : parsedMessages} ), null, 2);
+    ctx.log({ messages: parsedMessages});
       
     const prevResponses = [];
 
