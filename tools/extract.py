@@ -12,35 +12,13 @@ def extract_messages(log_file, output_file):
 
         if matches:
             last_instance = matches[-1][-1]
-            role_pattern = r"role: ['\"]([^'\"]*)['\"]"
-            content_pattern = r"content: ['\"]([^'\"]*)['\"]"
-            roles = re.findall(role_pattern, last_instance)
-            contents = re.findall(content_pattern, last_instance)
 
-            messages = { "messages" : [{"role": role, "content": content} for role, content in zip(roles, contents)] }
+            role_pattern = r"role: (?:'([^']*)'|\"([^\"]*)\")"
+            #content_pattern = r"content: (?:'([^']*)'|\"([^\"]*)\")"
+            content_pattern = r"content:\s*(?:'([^']+)'|\"([^\"]+)\")"
 
-            with open(output_file, 'w') as out:
-                json.dump(messages, out, indent=2)
-        else:
-            print("No matching instances found in the log file.")
-
-# Replace 'input.log' and 'output.json' with your actual log and output file names
-import re
-import json
-
-def extract_messages(log_file, output_file):
-    with open(log_file, 'r') as log, open(output_file, 'w') as out:
-        log_content = log.read()
-        pattern = r"Starting getChatCompletionWithTools\.([\s\S]*?)(parsedMessages: \[[\s\S]*?\])"
-        matches = re.findall(pattern, log_content)
-
-        if matches:
-            last_instance = matches[-1][-1]
-            role_pattern = r"role: '([^']*)'"
-            content_pattern = r"content: '([^']*)'"
-
-            roles = re.findall(role_pattern, last_instance)
-            contents = re.findall(content_pattern, last_instance)
+            roles = [role[0] or role[1] for role in re.findall(role_pattern, last_instance)]
+            contents = [content[0] + content[1] for content in re.findall(content_pattern, last_instance, re.MULTILINE | re.DOTALL )]
 
             messages = { "messages" : [{"role": role, "content": content} for role, content in zip(roles, contents)] }
 
