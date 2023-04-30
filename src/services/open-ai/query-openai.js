@@ -197,7 +197,7 @@ async function getChatCompletionWithTools(ctx, messengerName, messages, direct) 
 
     //const parsedMessages = deepClone(messages);
     const parsedMessages = direct ? await deepClone(messages) : await dbMessages2Messages(messages);
-    fs.writeFileSync('repro.json', JSON.stringify( {messages : parsedMessages} ), null, 2);
+    //fs.writeFileSync('repro.json', JSON.stringify( {messages : parsedMessages} ), null, 2);
     ctx.log({ messages: parsedMessages});
       
     const prevResponses = [];
@@ -291,7 +291,7 @@ here is the data so far:
   }
   
   const escapedMatch = escapeSpecialChars(matches[1]);
-  fs.writeFileSync('response_matches.json', escapedMatch, null, 2);
+  //fs.writeFileSync('response_matches.json', escapedMatch, null, 2);
   ctx.log(`completionIterativeStep: matched response: ${escapedMatch}`);
   
   const jsonReply = JSON.parse(escapedMatch);
