@@ -1,0 +1,6 @@
+{ "messages" : [
+    {"role" : "user", "content" : "Tell me i'm nice and ask me if i like to hear it again"},
+    {"role" : "assistant", "content" : "You are nice. Would you like to hear it again?"},
+    {"role" : "user", "content" : "yes"}
+] }
+

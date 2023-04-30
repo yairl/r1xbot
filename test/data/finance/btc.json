@@ -1,0 +1,4 @@
+{ "messages" : [
+    { "role" : "user", "content" : "what was the value of btc yesterday?" }
+] }
+
