@@ -176,7 +176,7 @@ Your tasks are as follows:
 1. Formulate the request from the human in their last message.
 2. Formulate the human's request as a self-contained question, including all relevant data from previous messages in the chat, as well as data from tool invocations.
 3. State which tool should be invoked can provide the most information, and with what input. List all prerequisites for the tool and show how each is met. IMPORTANT: it is not allowed to invoke a tool that already has data provided to in in the <r1xdata> section.
-4. Formulate the tool invocation request, or answer, in JSON format as detailed above. JSON should be delimited as <yair1xigoresponse>RESPONSE</yair1xigoresponse>.
+4. Formulate the tool invocation request, or answer, in JSON format as detailed above. JSON should be delimited as <yair1xigoresponse>RESPONSE</yair1xigoresponse>. IMPORTANT: THE "RESPONSE" PART MUST BE DELIVERED IN A SINGLE LINE. DO NOT USE MULTILINE SYNTAX.
 
 Use the following format when provicing your answer:
 
