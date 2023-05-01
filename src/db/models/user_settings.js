@@ -1,8 +1,8 @@
 "use strict";
 
 module.exports = (sequelize, DataTypes) => {
-  const UserSettings = sequelize.define(
-    "UserSettings",
+  const user_settings = sequelize.define(
+    "user_settings",
     {
       user_id: DataTypes.STRING,
       settings: DataTypes.JSONB,
@@ -10,5 +10,5 @@ module.exports = (sequelize, DataTypes) => {
     },
     {}
   );
-  return UserSettings;
+  return user_settings;
 };
