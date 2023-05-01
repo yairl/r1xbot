@@ -151,7 +151,7 @@ Today's date is ${new Date(Date.now()).toDateString()}.
 Consider your knowledge until September 2021. If a request has no time context, assume current time. Do not mention tools directly to the user.
 
 Follow these steps:
-1. Identify the human's most recent request.
+1. Identify the human's most recent message.
 2. Create a self-contained question, including relevant data from chat and tool invocations.
 3. State the most appropriate tool and input, listing prerequisites and how they are met.
 4. Provide the tool invocation request or answer in JSON format wrapped within <yair1xigoresponse> tags: <yair1xigoresponse>RESPONSE</yair1xigoresponse>.
@@ -218,7 +218,7 @@ Your tasks are as follows:
 
 Use the following format when provicing your answer:
 
-Human's most recent request: <request>
+Human's most recent message: <request>
 Self-contained request: <human's most recent request, including all relevant data from chat history>
 Tool invocation request: <information about which tool is most relevant, if any, including explanation how each prerequisite for the tool is met with detailed data. confirm that you have verified that this tool has not been invoked yet, as it is illegal to invoke again>
 Response: <yair1xigoresponse><tool request or answer in JSON format></yair1xigoresponse>
