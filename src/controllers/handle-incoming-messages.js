@@ -12,6 +12,18 @@ const posthog_client = new PostHog(
     { host: 'https://app.posthog.com' }
   );
 
+async function getUserChannel(parsedMessage) {
+  const user_id = `${parsedMessage.source}:${parsedMessage.chatId}`;
+  const settings = await db.user_settings.findOne({
+    where: { user_id },
+    order: [["createdAt", "DESC"]]
+  });
+
+  const channel = settings?.settings?.channel;
+
+  return channel;
+}
+
 // Handle incoming message from ingress SQS queue.
 //
 // 1. Insert message to DB.
@@ -47,6 +59,8 @@ async function handleIncomingMessageCore(ctx, event, inFlight) {
   const [parsedMessage, fileInfo] = parseMessageResult;
 
   messenger.setStatusRead(ctx, parsedMessage.messageId);
+
+  ctx.userChannel = await getUserChannel(parsedMessage);
 
   let isTyping = false;
 
@@ -108,7 +122,11 @@ async function handleIncomingMessageCore(ctx, event, inFlight) {
   // 3. Generate reply
   ctx.log('calling getChatCompletion...');
   const messengerName = parsedEvent.source == 'wa' ? 'WhatsApp' : 'Telegram';
+//  const completion = ctx.userChannel == 'canary' ?
+//                       await getChatCompletionWithTools(ctx, messengerName, messageHistory, false) :
+//                       await getChatCompletion(ctx, messengerName, messageHistory);
   const completion = await getChatCompletionWithTools(ctx, messengerName, messageHistory, false);
+
   ctx.log({completion});
   ctx.log('getChatCompletion done, result is ', completion.response);
 
