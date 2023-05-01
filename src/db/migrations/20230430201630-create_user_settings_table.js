@@ -21,7 +21,11 @@ module.exports = {
         allowNull: false,
         type: Sequelize.INTEGER
       },
-      created_at: {
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE
+      },
+      updatedAt: {
         allowNull: false,
         type: Sequelize.DATE
       }
@@ -29,13 +33,13 @@ module.exports = {
 
     // Add indexes on user_id and created_at
     await queryInterface.addIndex('user_settings', ['user_id']);
-    await queryInterface.addIndex('user_settings', ['created_at']);
+    await queryInterface.addIndex('user_settings', ['createdAt']);
   },
 
   down: async (queryInterface, Sequelize) => {
-    // Remove indexes on user_id and created_at
+    // Remove indexes on user_id and createdAt
     await queryInterface.removeIndex('user_settings', ['user_id']);
-    await queryInterface.removeIndex('user_settings', ['created_at']);
+    await queryInterface.removeIndex('user_settings', ['createdAt']);
 
     // Drop the table
     await queryInterface.dropTable('user_settings');
