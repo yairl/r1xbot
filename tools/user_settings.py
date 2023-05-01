@@ -17,7 +17,7 @@ def get_settings(user_id):
     conn = connect_to_db()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM user_settings WHERE user_id = %s", (user_id,))
+    cursor.execute("SELECT * FROM user_settings WHERE user_id = %s ORDER BY id DESC", (user_id,))
     row = cursor.fetchone()
 
     if row:
@@ -41,8 +41,8 @@ def set_setting(user_id, key_value_pairs):
         key, value = pair.split("=")
         settings[key] = value
 
-    cursor.execute("INSERT INTO user_settings (user_id, settings, version, created_at) VALUES (%s, %s, 1, %s)",
-                   (user_id, json.dumps(settings), datetime.now()))
+    cursor.execute('INSERT INTO user_settings (user_id, settings, version, "createdAt", "updatedAt") VALUES (%s, %s, 1, %s, %s)',
+                   (user_id, json.dumps(settings), datetime.now(), datetime.now()))
 
     conn.commit()
     cursor.close()
