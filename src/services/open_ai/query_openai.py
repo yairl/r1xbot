@@ -384,3 +384,4 @@ async def create_transcription(ctx, mp3_file_path):
 
     ctx.log(f'createTranscription: timeTaken={time_taken}ms transcription={transcription["data"]["text"]}')
     return transcription['data']['text']
+
