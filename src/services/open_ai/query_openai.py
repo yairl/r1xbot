@@ -1,12 +1,11 @@
 import json
 import os
-from openai import OpenAI, Configuration
+import openai
 import time
 import re
 import requests
 
-import querystring
-from . import token_predictor
+from src.services.token_prediction import token_predictor
 
 
 def deep_clone(o):
@@ -148,7 +147,7 @@ Follow these steps:
 Example response:
 </yair1xigoresponse>{ "ANSWER" : "Your answer" }</yair1xigoresponse>
 
-Focus on the most recent request from the user, even if it's repeated. Do not invoke a tool if the required information was already provided by a previous tool invocation."""
+Focus on the most recent request from the user, even if it's repeated. Do not invoke a tool if the required information was already provided by a previous tool invocation.""" }
 
     prep_message_stable = {
         "role" : "user",
@@ -187,7 +186,7 @@ Example:
 
 { "ANSWER" : "Rishi Sunak" }
 
-Today's date is ${new Date(Date.now()).toDateString()}.
+Today's date is XXXXXX.
 You are trained with knowledge until September 2021.
 For factual information about people, stocks and world events, use one of the tools available to you before replying.
 For fiction requests, use your knowledge and creativity to answer. Be verbose.
@@ -214,7 +213,7 @@ Self-contained request: <human's most recent request, including all relevant dat
 Tool invocation request: <information about which tool is most relevant, if any, including explanation how each prerequisite for the tool is met with detailed data. confirm that you have verified that this tool has not been invoked yet, as it is illegal to invoke again>
 Response: <yair1xigoresponse><tool request or answer in JSON format></yair1xigoresponse>
 
-IMPORTANT: Make sure to focus on the most recent request from the user, even if it is a repeated one."""
+IMPORTANT: Make sure to focus on the most recent request from the user, even if it is a repeated one.""" }
 
     return prep_message_canary if ctx.get('channel') == 'canary' else prep_message_stable
 
@@ -285,7 +284,8 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses):
     new_request['content'] += '\n<R1X:></yair1xigor>'
 
     if prev_responses:
-        new_request['content'] += f'\nhere is the data so far:\n\n<r1xdata>{"\n".join(prev_responses)}</r1xdata>\n'
+        prev_responses_flag = '\n'.join(prev_responses)
+        new_request['content'] += f'\nhere is the data so far:\n\n<r1xdata>{prev_responses_flat}</r1xdata>\n'
 
     prep_message = get_prep_message(ctx, messenger_name)
     messages.append(prep_message)
