@@ -8,7 +8,9 @@ from dotenv import load_dotenv
 from datetime import datetime
 
 def connect_to_db():
-    load_dotenv('.env.dev')
+    stage = os.environ['R1X_STAGE'] if 'R1X_STAGE' in os.environ else 'dev'
+    print('Connecting to %s environment...' % stage)
+    load_dotenv('.env.%s' % stage)
     connection_string = os.getenv('DB_CONNECTION_STRING')
     conn = psycopg2.connect(connection_string)
     return conn
