@@ -1,8 +1,8 @@
 import os
 import random
 import requests
-from utils import downloader, media_converter, file_services
-from messages import messages_service
+from src.utils import download_services, media_converters, file_services
+from src.services.messages import messages_service
 
 class MessageKindE:
     TEXT = 'text'
@@ -96,22 +96,13 @@ def is_message_for_me(msg):
 
     return False
 
-import os
-import random
-import time
-import requests
-from utils import downloader, media_converter, file_services
-from messages import messages_service
-
-# ... (class MessageKindE and other functions)
-
 def get_voice_mp3_file(ctx, parsed_message, file_info):
     url = get_download_url(ctx, file_info["fileId"])
     ogg_file_path, mp3_file_path = get_audio_file_paths(ctx, parsed_message["chatId"], file_info)
     is_download_successful = False
     try:
-        is_download_successful = downloader.download_stream_file(ctx, url, ogg_file_path)
-        media_converter.convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path)
+        is_download_successful = download_services.download_stream_file(ctx, url, ogg_file_path)
+        media_converters.convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path)
 
         return mp3_file_path
 
