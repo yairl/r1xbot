@@ -1,5 +1,5 @@
 from sqlalchemy import and_, desc
-from db.models import Message
+from src.db.models.messages import Message
 
 def insert_message(ctx, attributes):
     source = attributes['source']

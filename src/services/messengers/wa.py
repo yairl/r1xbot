@@ -1,7 +1,7 @@
 import os
 import requests
-from utils import downloader, media_converter, file_services
-from messages import messages_service
+from src.utils import download_services, media_converters, file_services
+from src.services.messages import messages_service
 
 class EventKindE:
     STATUS_UPDATE = 'status_update'
@@ -173,8 +173,8 @@ async def get_voice_mp3_file(ctx, parsed_message, file_info):
             "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
         }
 
-        is_download_successful = await downloader.download_stream_file(ctx, url, ogg_file_path, headers)
-        await media_converter.convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path)
+        is_download_successful = await download_services.download_stream_file(ctx, url, ogg_file_path, headers)
+        await media_converters.convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path)
 
         return mp3_file_path
 

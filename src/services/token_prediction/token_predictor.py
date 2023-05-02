@@ -1,10 +1,6 @@
 import json
 import os
-from tiktoken import Tokenizer
-from tiktoken.tokenizer import Tokenizer as TikToken
-
-cl100k_base = json.loads(open("path/to/cl100k_base.json").read())
-models = json.loads(open("path/to/model_to_encoding.json").read())
+import tiktoken
 
 # global variable to hold the encode objects between invocations
 encoder = None
@@ -94,13 +90,7 @@ def get_messages_upto_max_tokens(ctx, system_message, chat_messages, soft_token_
 def init():
     global encoder
     try:
-        assert models[os.environ['OPENAI_MODEL']] == 'cl100k_base', f'This code assumes that the model of {os.environ["OPENAI_MODEL"]} to be "cl100k_base", but got {models[os.environ["OPENAI_MODEL"]]}'
-
-        encoder = TikToken(
-            cl100k_base['bpe_ranks'],
-            cl100k_base['special_tokens'],
-            cl100k_base['pat_str']
-        )
+        encoder = tiktoken.get_encoding("cl100k_base")
     except Exception as error:
         print('Error occurred while initializing:', error)
 
@@ -109,8 +99,4 @@ def cleanup():
     encoder = None
 
 init()
-
-module_exports = {
-    'getMessagesUptoMaxTokens': get_messages_upto_max_tokens,
-    'numTokensFromMessages': num_tokens_from_messages
 
