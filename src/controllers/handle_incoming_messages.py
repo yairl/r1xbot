@@ -1,8 +1,8 @@
-from services.open_ai.query_openai import get_chat_completion, get_chat_completion_with_tools, create_transcription
-from db.models import user_settings
-from services.messages.messages_service import insert_message, get_message_history
-from services.messengers import messengers
-from utils.file_services import delete_file
+from src.services.open_ai.query_openai import get_chat_completion, get_chat_completion_with_tools, create_transcription
+from src.db.models import user_settings
+from src.services.messages.messages_service import insert_message, get_message_history
+from src.services.messengers import messengers
+from src.utils.file_services import delete_file
 from posthog import PostHog
 
 posthog_client = PostHog(
@@ -60,7 +60,7 @@ def handle_incoming_message_core(ctx, event, in_flight):
         quote_transcription, unused_reply_to_voice_message = get_voice_message_actions(messenger.is_message_for_me(parsed_message))
 
         if quote_transcription:
-            prefix_text = "\u{1F5E3}\u{1F4DD}: "
+            prefix_text = "\u1F5E3\u1F4DD: "
             messenger.send_message_raw(ctx, {
                 "chat_id": parsed_message.chat_id,
                 "kind": "text",
@@ -111,7 +111,7 @@ def handle_incoming_message_core(ctx, event, in_flight):
     });
 
     posthog_client.capture({
-        distinctId: `${parsedEvent.source}:${parsedMessage.chatId}`,
+        distinctId: f'{parsedEvent.source}:{parsedMessage.chatId}',
         event: 'reply-sent',
         properties: {
             senderId: parsedMessage.senderId,
