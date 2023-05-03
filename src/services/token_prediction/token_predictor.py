@@ -14,7 +14,7 @@ def num_tokens_from_messages(messages):
     for message in messages:
         num_tokens += 4
         for key, value in message.items():
-            num_tokens += len(encoder.tokenize(value))
+            num_tokens += len(encoder.encode(value))
             if key == "name":
                 num_tokens -= 1
 
@@ -29,7 +29,7 @@ def get_message_tokens(message):
     num_tokens = 0
     num_tokens += 4
     for key, value in message.items():
-        num_tokens += len(encoder.tokenize(value))
+        num_tokens += len(encoder.encode(value))
         if key == "name":
             num_tokens -= 1
 
@@ -54,20 +54,24 @@ def get_message_index_upto_max_tokens(system_message, chat_messages, soft_token_
 
     include_system_message = True
 
+    num_messages = 0
+
     for start_index in range(len(chat_messages), 0, -1):
         message = chat_messages[start_index - 1]
 
         num_tokens += get_message_tokens(message)
 
         if num_tokens <= soft_token_limit:
+            num_messages += 1
             continue
 
         if start_index == len(chat_messages) and num_tokens <= hard_token_limit:
+            num_messages += 1
             continue
 
         break
 
-    return [include_system_message, start_index]
+    return [include_system_message, len(chat_messages) - num_messages]
 
 def get_messages_upto_max_tokens(ctx, system_message, chat_messages, soft_token_limit, hard_token_limit):
     ctx.log(f"getMessagesUptoMaxTokens: chatMessages.length={len(chat_messages)}, softTokenLimit={soft_token_limit}, hardTokenLimit={hard_token_limit}")

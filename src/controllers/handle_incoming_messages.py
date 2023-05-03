@@ -1,12 +1,14 @@
+import os
+
 from src.services.open_ai.query_openai import get_chat_completion, get_chat_completion_with_tools, create_transcription
 from src.db.models import user_settings
 from src.services.messages.messages_service import insert_message, get_message_history
-from src.services.messengers import messengers
+import src.services.messengers
 from src.utils.file_services import delete_file
-from posthog import PostHog
+from posthog import Posthog
 
-posthog_client = PostHog(
-    process.env.POSTHOG_API_KEY,
+posthog_client = Posthog(
+    os.environ['POSTHOG_API_KEY'],
     host='https://app.posthog.com'
 )
 
@@ -36,7 +38,7 @@ def handle_incoming_message(ctx, event):
 
 def handle_incoming_message_core(ctx, event, in_flight):
     parsed_event = json.loads(event)
-    messenger = messengers[parsed_event["source"]]
+    messenger = messengers.__all__[parsed_event["source"]]
 
     parse_message_result = messenger.parse_message(parsed_event["event"])
 
@@ -99,7 +101,7 @@ def handle_incoming_message_core(ctx, event, in_flight):
 
     ctx.log("calling get_chat_completion...")
     messenger_name = "WhatsApp" if parsed_event["source"] == "wa" else "Telegram"
-    completion = get_chat_completion_with_tools(ctx, messenger_name, message_history, False) if ctx.user_channel == "canary" else get_chat_completion(ctx, messenger_name, message_history)
+    completion = get_chat_completion_with_tools(ctx, messenger_name, message_history, False) if ctx.user_channel == "canary" else get_chat_completion(ctx, messenger_name, message_history, False)
 
     ctx.log({"completion": completion})
     ctx.log("get_chat_completion done, result is ", completion.response)
