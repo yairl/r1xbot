@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import os
 import logging
 
@@ -5,9 +7,11 @@ import boto3
 from botocore.exceptions import ClientError
 
 from src.utils import logger, init_env_vars
+init_env_vars.config()
+
 from src.controllers.handle_incoming_messages import handle_incoming_message
 
-init_env_vars.config()
+from concurrent.futures import ThreadPoolExecutor
 
 num_of_consumers = 10
 consumers = []
@@ -22,7 +26,7 @@ def process_message(message):
     log_ctx = logger.create_logging_context(ctx["msgCount"])
     log_ctx.log("Starting to handle message")
 
-    result = handle_incoming_message(log_ctx, message.body)
+    result = handle_incoming_message(log_ctx, message['body'])
     log_ctx.log("Finished handling message")
 
 def main():
@@ -31,8 +35,10 @@ def main():
         while True:
             try:
                 # Receive messages from SQS queue
-                logger.info("Listening on SQS queue...")
+                logger.logger.info("Listening on SQS queue...")
                 response = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=20)
+
+                print(response)
 
                 if 'Messages' in response:
                     messages = response['Messages']
