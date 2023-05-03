@@ -4,8 +4,11 @@ import openai
 import time
 import re
 import requests
+import traceback
 
 from src.services.token_prediction import token_predictor
+
+openai.api_key = os.environ['OPENAI_API_KEY']
 
 
 def deep_clone(o):
@@ -30,7 +33,7 @@ def get_system_message(ctx, messenger_name):
     return system_message
 
 
-async def db_messages_to_messages(messages):
+def db_messages_to_messages(messages):
     parsed_messages = []
 
     for message in messages:
@@ -41,11 +44,11 @@ async def db_messages_to_messages(messages):
     return parsed_messages
 
 
-async def get_limited_message_history(ctx, messages, prompt_template):
+def get_limited_message_history(ctx, messages, prompt_template):
     soft_token_limit = 2048
     hard_token_limit = 4000
 
-    messages_upto_max_tokens = await token_predictor.get_messages_upto_max_tokens(
+    messages_upto_max_tokens = token_predictor.get_messages_upto_max_tokens(
         ctx, prompt_template, messages, soft_token_limit, hard_token_limit
     )
 
@@ -69,33 +72,35 @@ async def get_limited_message_history(ctx, messages, prompt_template):
     return merged_messages
 
 
-async def get_chat_completion(ctx, messenger_name, messages):
-    parsed_messages = await db_messages_to_messages(messages)
+def get_chat_completion(ctx, messenger_name, messages, direct):
+    parsed_messages = deep_clone(messages) if direct else db_messages_2_messages(messages)
 
     system_message = get_system_message(ctx, messenger_name)
-    messages_upto_max_tokens = await get_limited_message_history(
+    messages_upto_max_tokens = get_limited_message_history(
         ctx, parsed_messages, system_message
     )
 
     return get_chat_completion_core(ctx, messenger_name, messages_upto_max_tokens)
 
-async def get_chat_completion_core(ctx, messenger_name, messages):
-    model = "gpt-4" if ctx.get("userChannel") == "canary" else "gpt-3.5-turbo"
+def get_chat_completion_core(ctx, messenger_name, messages):
+    model = "gpt-4" if getattr(ctx, "userChannel", None) == "canary" else "gpt-3.5-turbo"
 
     try:
         ctx.log("invoking completion request.")
-        completion = await openai.create_chat_completion(
+        completion = openai.ChatCompletion().create(
             model=model,
             messages=messages,
             temperature=0.2
         )
 
-        ctx.log("getChatCompletionCore response: ", completion.data.choices[0].message.content)
+        
+
+        ctx.log("getChatCompletionCore response: ", completion['choices'][0]['message']['content'])
 
         return {
-            "response": completion.data.choices[0].message.content,
-            "promptTokens": completion.data.usage.prompt_tokens,
-            "completionTokens": completion.data.usage.completion_tokens
+            "response": completion['choices'][0]['message']['content'],
+            "promptTokens": completion['usage']['prompt_tokens'],
+            "completionTokens": completion['usage']['completion_tokens']
         }
     except Exception as e:
         if hasattr(e, "response"):
@@ -107,7 +112,7 @@ async def get_chat_completion_core(ctx, messenger_name, messages):
         raise Exception("error generating completion from OpenAI.")
 
 
-async def get_prep_message(ctx, messenger):
+def get_prep_message(ctx, messenger):
     current_date = time.strftime("%B %d, %Y", time.gmtime())
 
     prep_message_canary = {
@@ -145,7 +150,7 @@ Follow these steps:
 3. State the most appropriate tool and input, listing prerequisites and how they are met.
 4. Provide the tool invocation request or answer in JSON format wrapped within <yair1xigoresponse> tags: <yair1xigoresponse>RESPONSE</yair1xigoresponse>.
 Example response:
-</yair1xigoresponse>{ "ANSWER" : "Your answer" }</yair1xigoresponse>
+</yair1xigoresponse>{{ "ANSWER" : "Your answer" }}</yair1xigoresponse>
 
 Focus on the most recent request from the user, even if it's repeated. Do not invoke a tool if the required information was already provided by a previous tool invocation.""" }
 
@@ -176,15 +181,15 @@ WEATHER: per-location 5-day weather forecast, at day granularity. It does not pr
 For invoking a tool, provide your reply in a JSON format, with the following fields: TOOL, TOOL_INPUT, REASON.
 Examples:
 
-{ "TOOL" : "SEARCH", "TOOL_INPUT" : "Who is the current UK PM?", "REASON" : "Human requested data about UK government." }
-{ "TOOL" : "WEATHER", "TOOL_INPUT" : "Tel Aviv, Israel", "REASON" : "Human is located in Tel Aviv, Israel and asked what to wear tomorrow." }
+{{ "TOOL" : "SEARCH", "TOOL_INPUT" : "Who is the current UK PM?", "REASON" : "Human requested data about UK government." }}
+{{ "TOOL" : "WEATHER", "TOOL_INPUT" : "Tel Aviv, Israel", "REASON" : "Human is located in Tel Aviv, Israel and asked what to wear tomorrow." }}
 
 Please use these exact formats, and do not deviate.
 
 Otherwise, provide your final reply in a JSON format, with the following fields: ANSWER.
 Example:
 
-{ "ANSWER" : "Rishi Sunak" }
+{{ "ANSWER" : "Rishi Sunak" }}
 
 Today's date is XXXXXX.
 You are trained with knowledge until September 2021.
@@ -206,7 +211,7 @@ Your tasks are as follows:
 3. State which tool should be invoked can provide the most information, and with what input. List all prerequisites for the tool and show how each is met. IMPORTANT: it is not allowed to invoke a tool that already has data provided to in in the <r1xdata> section.
 4. Formulate the tool invocation request, or answer, in JSON format as detailed above. JSON should be delimited as <yair1xigoresponse>RESPONSE</yair1xigoresponse>. IMPORTANT: THE "RESPONSE" PART MUST BE DELIVERED IN A SINGLE LINE. DO NOT USE MULTILINE SYNTAX.
 
-Use the following format when provicing your answer:
+Use the following format when providing your answer:
 
 Human's most recent message: <request>
 Self-contained request: <human's most recent request, including all relevant data from chat history>
@@ -215,26 +220,32 @@ Response: <yair1xigoresponse><tool request or answer in JSON format></yair1xigor
 
 IMPORTANT: Make sure to focus on the most recent request from the user, even if it is a repeated one.""" }
 
-    return prep_message_canary if ctx.get('channel') == 'canary' else prep_message_stable
+    return prep_message_canary if getattr(ctx, 'userChannel', None) == 'canary' else prep_message_stable
 
-prepReplyMessage = {"role": "assistant", "content": "Understood. Please provide me with the chat between R1X and the human."}
+prep_reply_message = {"role": "assistant", "content": "Understood. Please provide me with the chat between R1X and the human."}
 
-async def getChatCompletionWithTools(ctx, messengerName, messages, direct):
+import datetime
+
+def get_chat_completion_with_tools(ctx, messenger_name, messages, direct):
     try:
         ctx.log("Starting getChatCompletionWithTools.")
 
-        parsedMessages = await deepClone(messages) if direct else await dbMessages2Messages(messages)
-        ctx.log({"messages": parsedMessages})
+        parsed_messages = deep_clone(messages) if direct else db_messages_2_messages(messages)
+        ctx.log({"messages": parsed_messages})
 
-        prevResponses = []
+        prev_responses = []
 
-        systemMessage = getSystemMessage(ctx, messengerName)
-        history = await getLimitedMessageHistory(ctx, parsedMessages, systemMessage)
+        system_message = get_system_message(ctx, messenger_name)
+        history = get_limited_message_history(ctx, parsed_messages, system_message)
 
         for i in range(2):
             ctx.log(f"Invoking completionIterativeStep #{i}")
-            answer, tool, input = await completionIterativeStep(ctx, messengerName, deepClone(history), prevResponses)
-            ctx.log(f"completionIterativeStep done, answer={answer} tool={tool} input={input}")
+            result = completion_iterative_step(ctx, messenger_name, deep_clone(history), prev_responses)
+            answer = result['answer']
+            tool = result['tool']
+            input_ = result['input']
+
+            ctx.log(f"completionIterativeStep done, answer={answer} tool={tool} input={input_}")
 
             if answer:
                 ctx.log(f"Answer returned: {answer}")
@@ -245,29 +256,29 @@ async def getChatCompletionWithTools(ctx, messengerName, messages, direct):
                     "completionTokens": 0
                 }
 
-            if tool and input:
-                ctx.log(f"Invoking TOOL {tool} with INPUT {input}")
-                response = await invokeTool(ctx, tool, input)
-                prevResponses.append(f"INVOKED TOOL={tool}, TOOL_INPUT={input}, ACCURACY=100%, INVOCATION DATE={datetime.datetime.now().date()} RESPONSE={response}")
+            if tool and input_:
+                ctx.log(f"Invoking TOOL {tool} with INPUT {input_}")
+                response = invoke_tool(ctx, tool, input_)
+                prev_responses.append(f"INVOKED TOOL={tool}, TOOL_INPUT={input_}, ACCURACY=100%, INVOCATION DATE={datetime.datetime.now().date()} RESPONSE={response}")
 
     except Exception as e:
         ctx.log({"e": e})
+        traceback.print_exc();
 
     ctx.log("getChatCompletionWithTools: failed generating customized reply, falling back to getChatCompletion.")
 
-    return getChatCompletion(ctx, messengerName, messages)
+    return get_chat_completion(ctx, messenger_name, messages, direct)
 
-def escapeSpecialChars(str):
-    return str.translate(str.maketrans({
+def escape_special_chars(s):
+    return s.translate(str.maketrans({
         "\n": "\\n",
         "\r": "\\r",
         "\t": "\\t",
         "\b": "\\b",
         "\f": "\\f",
         "\\": "\\\\",
-        "'": "\\'",
-        "\"": "\\\""
     }))
+
 
 def completion_iterative_step(ctx, messenger_name, history, prev_responses):
     result = {'answer': None, 'tool': None, 'input': None}
@@ -284,7 +295,7 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses):
     new_request['content'] += '\n<R1X:></yair1xigor>'
 
     if prev_responses:
-        prev_responses_flag = '\n'.join(prev_responses)
+        prev_responses_flat = '\n'.join(prev_responses)
         new_request['content'] += f'\nhere is the data so far:\n\n<r1xdata>{prev_responses_flat}</r1xdata>\n'
 
     prep_message = get_prep_message(ctx, messenger_name)
@@ -293,7 +304,7 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses):
 
     messages.append(new_request)
 
-    ctx.log({'messages': messages})
+    ctx.log(messages)
 
     reply = get_chat_completion_core(ctx, messenger_name, messages)
 
@@ -301,20 +312,20 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses):
     matches = regex.search(reply['response'])
 
     if not matches:
-        return 0
+        return result
 
     escaped_match = escape_special_chars(matches.group(1))
     ctx.log(f'completionIterativeStep: matched response: {escaped_match}')
 
     json_reply = json.loads(escaped_match)
 
-    result['answer'] = json_reply['ANSWER']
+    result['answer'] = json_reply.get('ANSWER')
     if result['answer']:
         return result
 
-    if json_reply['TOOL'] and json_reply['TOOL_INPUT']:
-        result['tool'] = json_reply['TOOL']
-        result['input'] = json_reply['TOOL_INPUT']
+    if json_reply.get('TOOL') and json_reply.get('TOOL_INPUT'):
+        result['tool'] = json_reply.get('TOOL')
+        result['input'] = json_reply.get('TOOL_INPUT')
         return result
 
     return result
@@ -324,11 +335,10 @@ def invoke_tool(ctx, tool, input):
 
     if tool_canon.startswith('SEARCH'):
         # Replace this with an appropriate call to the Serper module
-        # from langchain.tools import Serper
+        from langchain.utilities import google_serper
         ctx.log(f'Invoking Google search using SERPER, input={input}')
-        # serper = Serper()
-        # answer = serper.call(input)
-        answer = 'SEARCH_RESULT_PLACEHOLDER'  # Placeholder
+        serper = google_serper.GoogleSerperAPIWrapper(serper_api_key=os.environ['SERPER_API_KEY'])
+        answer = serper.run(input)
         ctx.log(f'SERPER search result: {answer}')
 
         return answer
@@ -370,11 +380,11 @@ def invoke_weather_search(ctx, input):
 
     return json.dumps(w_res_json['daily'])
 
-async def create_transcription(ctx, mp3_file_path):
+def create_transcription(ctx, mp3_file_path):
     t0 = time.time()
 
     # Replace this with an appropriate call to the OpenAI API
-    # transcription = await openai.create_transcription(  
+    # transcription = openai.create_transcription(  
     #     open(mp3_file_path, 'rb'),
     #     os.environ['OPENAI_SPEECH_TO_TEXT_MODEL'],
     # )
