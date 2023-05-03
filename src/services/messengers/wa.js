@@ -154,6 +154,8 @@ async function sendMessageRaw(ctx, attributes) {
     'Content-Type': 'application/json'
   };
 
+  if (body.length > 4000) { body = body.substring(0, 4000); }
+
   var args = {
     messaging_product: "whatsapp",    
     recipient_type: "individual",
@@ -178,6 +180,9 @@ async function sendMessageRaw(ctx, attributes) {
     );
   } catch (error) {
     ctx.log(`sendMessageRaw: exception. error.response.data=${error?.response?.data}`);
+    if (error?.response?.data) {
+      ctx.log(JSON.stringify(error?.response?.data));
+    }
     throw(error);
   }
   //ctx.log(response);
