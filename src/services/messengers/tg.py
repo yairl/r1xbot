@@ -3,6 +3,7 @@ import random
 import requests
 from src.utils import download_services, media_converters, file_services
 from src.services.messages import messages_service
+from box import Box
 
 class MessageKindE:
     TEXT = 'text'
@@ -22,7 +23,7 @@ def parse_message(message):
     message = message['message']
 
     source = "tg"
-    message_timestamp = message['date'] * 1000
+    message_timestamp = message['date']
     chat_type = message['chat']['type']
     chat_id = str(message['chat']['id'])
     sender_id = str(message['from']['id'])
@@ -35,7 +36,7 @@ def parse_message(message):
     fileUniqueId = message['voice']['file_unique_id'] if kind == MessageKindE.VOICE else None
 
     return (
-        {
+        Box({
             'source': source,
             'messageTimestamp': message_timestamp,
             'chatType': chat_type,
@@ -47,14 +48,14 @@ def parse_message(message):
             'kind': kind,
             'body': body,
             'rawSource': message
-        },
-        {
+        }),
+        Box({
             'fileId': fileId,
             'fileUniqueId': fileUniqueId
-        }
+        })
     )
 
-async def send_message(ctx, attributes):
+def send_message(ctx, attributes):
     response = send_message_raw(ctx, attributes)
 
     if response['ok']:
@@ -63,11 +64,14 @@ async def send_message(ctx, attributes):
         parsed_message, file_info = parse_message(message)
         ctx.log({'parsedMessage': parsed_message})
 
-        await messages_service.insert_message(ctx, parsed_message)
+        messages_service.insert_message(ctx, parsed_message)
         ctx.log(f'Message inserted successfully: {parsed_message}')
 
 def send_message_raw(ctx, attributes):
-    chat_id, quote_id, kind, body = attributes['chatId'], attributes['quoteId'], attributes['kind'], attributes['body']
+    chat_id = attributes.get('chat_id')
+    quote_id = attributes.get('quote_id')
+    kind = attributes.get('kind')
+    body = attributes.get('body')
 
     if kind != "text":
         return
@@ -85,20 +89,20 @@ def send_message_raw(ctx, attributes):
     return response
 
 def is_message_for_me(msg):
-    if msg['chatType'] == "private":
+    if msg.chatType == "private":
         return True
 
-    if msg['body'].startswith(f'@{os.environ["TELEGRAM_BOT_NAME"]}'):
+    if msg.body.startswith(f'@{os.environ["TELEGRAM_BOT_NAME"]}'):
         return True
 
-    if 'reply_to_message' in msg['rawSource'] and msg['rawSource']['reply_to_message']['from']['id'] == int(os.environ['TELEGRAM_SENDER_ID']):
+    if 'reply_to_message' in msg.rawSource and msg.rawSource['reply_to_message']['from']['id'] == int(os.environ['TELEGRAM_SENDER_ID']):
         return True
 
     return False
 
 def get_voice_mp3_file(ctx, parsed_message, file_info):
-    url = get_download_url(ctx, file_info["fileId"])
-    ogg_file_path, mp3_file_path = get_audio_file_paths(ctx, parsed_message["chatId"], file_info)
+    url = get_download_url(ctx, file_info.fileId)
+    ogg_file_path, mp3_file_path = get_audio_file_paths(ctx, parsed_message.chatId, file_info)
     is_download_successful = False
     try:
         is_download_successful = download_services.download_stream_file(ctx, url, ogg_file_path)

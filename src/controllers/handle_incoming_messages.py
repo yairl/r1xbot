@@ -1,11 +1,14 @@
+import json
 import os
 
 from src.services.open_ai.query_openai import get_chat_completion, get_chat_completion_with_tools, create_transcription
-from src.db.models import user_settings
+from src.db.models.user_settings import UserSettings
 from src.services.messages.messages_service import insert_message, get_message_history
-import src.services.messengers
+import src.services.messengers as messengers
 from src.utils.file_services import delete_file
 from posthog import Posthog
+import src.db.models.index as db_index
+from sqlalchemy import desc
 
 posthog_client = Posthog(
     os.environ['POSTHOG_API_KEY'],
@@ -13,13 +16,17 @@ posthog_client = Posthog(
 )
 
 def get_user_channel(parsed_message):
-    user_id = f"{parsed_message.source}:{parsed_message.chat_id}"
-    settings = user_settings.findOne(
-        where={"user_id": user_id},
-        order=[("createdAt", "DESC")]
-    )
+    user_id = f"{parsed_message.source}:{parsed_message.chatId}"
+    session = db_index.Session()
+    settings = session.query(UserSettings) \
+                .filter(UserSettings.user_id == user_id) \
+                .order_by(desc(UserSettings.createdAt)) \
+                .limit(1) \
+                .one_or_none()
 
-    channel = settings.settings.channel if settings else None
+    channel = settings.settings['channel'] if settings else None
+
+    session.close()
 
     return channel
 
@@ -47,14 +54,14 @@ def handle_incoming_message_core(ctx, event, in_flight):
 
     parsed_message, file_info = parse_message_result
 
-    messenger.set_status_read(ctx, parsed_message.message_id)
+    messenger.set_status_read(ctx, parsed_message.messageId)
 
     ctx.user_channel = get_user_channel(parsed_message)
 
     is_typing = False
 
     if parsed_message.kind == "voice":
-        messenger.set_typing(parsed_message.chat_id, in_flight)
+        messenger.set_typing(parsed_message.chatId, in_flight)
         is_typing = True
 
         parsed_message.body = get_transcript(ctx, messenger, parsed_message, file_info)
@@ -64,31 +71,31 @@ def handle_incoming_message_core(ctx, event, in_flight):
         if quote_transcription:
             prefix_text = "\u1F5E3\u1F4DD: "
             messenger.send_message_raw(ctx, {
-                "chat_id": parsed_message.chat_id,
+                "chat_id": parsed_message.chatId,
                 "kind": "text",
                 "body": prefix_text + parsed_message.body,
-                "quote_id": parsed_message.message_id
+                "quote_id": parsed_message.messageId
             })
 
-        posthog_client.capture({
-            "distinct_id": f"{parsed_event['source']}:{parsed_message['chat_id']}",
-            "event": "message-transcribed",
-            "properties": {
-                "sender_id": parsed_message.sender_id,
+        posthog_client.capture(
+            distinct_id = f"{parsed_message.source}:{parsed_message.chatId}",
+            event = "message-transcribed",
+            properties = {
+                "sender_id": parsed_message.senderId,
                 "length_in_seconds": -1
             }
-        })
+        )
 
     message = insert_message(ctx, parsed_message)
 
-    if message.is_sent_by_me or message.body is None:
+    if message.isSentByMe or message.body is None:
         return
 
     if not messenger.is_message_for_me(message):
         return
 
     if not is_typing:
-        messenger.set_typing(parsed_message.chat_id, in_flight)
+        messenger.set_typing(parsed_message.chatId, in_flight)
         is_typing = True
 
     message_history = get_message_history(ctx, message)
@@ -106,26 +113,24 @@ def handle_incoming_message_core(ctx, event, in_flight):
     ctx.log({"completion": completion})
     ctx.log("get_chat_completion done, result is ", completion.response)
 
-    messenger.sendMessage(ctx, {
-        chatId: parsedMessage.chatId,
-        kind: "text",
-        body: completion.response
+    messenger.send_message(ctx, {
+        'chat_id': parsed_message.chatId,
+        'kind': "text",
+        'body': completion.response
     });
 
-    posthog_client.capture({
-        distinctId: f'{parsedEvent.source}:{parsedMessage.chatId}',
-        event: 'reply-sent',
-        properties: {
-            senderId: parsedMessage.senderId,
-            promptTokens: completion.promptTokens,
-            completionTokens: completion.completionTokens,
-            totalTokens: completion.promptTokens + completion.completionTokens
+    posthog_client.capture(
+        distinct_id = f'{parsed_message.source}:{parsed_message.chatId}',
+        event = 'reply-sent',
+        properties = {
+            'senderId': parsed_message.senderId,
+            'promptTokens': completion.promptTokens,
+            'completionTokens': completion.completionTokens,
+            'totalTokens': completion.promptTokens + completion.completionTokens
         }
-    });
+    )
 
-import asyncio
-
-async def send_intro_message(ctx, messenger, parsed_message):
+def send_intro_message(ctx, messenger, parsed_message):
     intro_message_legal = ("Robot 1-X at your service!\n\n"
                            "First, be aware that while I always do my best to help, I am not a professional doctor, psychologist, banker or otherwise.\n"
                            "Some of my replies may provide incorrect information about people, locations and events.\n"
@@ -142,24 +147,24 @@ async def send_intro_message(ctx, messenger, parsed_message):
                               "And, you can send me an audio message instead of typing!\n\n"
                               "How can I help?")
 
-    await messenger.send_message(ctx, {
-        "chatId": parsed_message["chatId"],
+    messenger.send_message(ctx, {
+        "chat_id": parsed_message["chatId"],
         "kind": "text",
         "body": intro_message_legal
     })
 
-    await messenger.send_message(ctx, {
+    messenger.send_message(ctx, {
         "chatId": parsed_message["chatId"],
         "kind": "text",
         "body": intro_message_overview
     })
 
-async def get_transcript(ctx, messenger, parsed_message, file_info):
+def get_transcript(ctx, messenger, parsed_message, file_info):
     mp3_file_path = None
 
     try:
-        mp3_file_path = await messenger.get_voice_mp3_file(ctx, parsed_message, file_info)
-        transcription = await create_transcription(ctx, mp3_file_path)
+        mp3_file_path = messenger.get_voice_mp3_file(ctx, parsed_message, file_info)
+        transcription = create_transcription(ctx, mp3_file_path)
         return transcription
     finally:
         if mp3_file_path:

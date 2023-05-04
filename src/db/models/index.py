@@ -1,3 +1,4 @@
+import json
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -29,7 +30,7 @@ else:
 Session = sessionmaker(bind=engine)
 
 # Import and register models
-from .message import Message
+from .messages import Message
 from .user_settings import UserSettings
 
 Base.metadata.create_all(engine)
