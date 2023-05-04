@@ -2,6 +2,8 @@ import os
 import requests
 from src.utils import download_services, media_converters, file_services
 from src.services.messages import messages_service
+from box import Box
+import time
 
 class EventKindE:
     STATUS_UPDATE = 'status_update'
@@ -31,7 +33,7 @@ def parse_message(message):
         return None
 
     kind = get_message_kind(message['entry'][0]['changes'][0]['value']['messages'][0])
-    message_timestamp = float(message['entry'][0]['changes'][0]['value']['messages'][0]['timestamp']) * 1e3
+    message_timestamp = float(message['entry'][0]['changes'][0]['value']['messages'][0]['timestamp'])
     sender_id = message['entry'][0]['changes'][0]['value']['messages'][0]['from']
     chat_id = sender_id
     chat_type = "private"
@@ -51,7 +53,7 @@ def parse_message(message):
 
     file_unique_id = None
 
-    return [{
+    return [Box({
         "source": source,
         "messageTimestamp": message_timestamp,
         "chatType": chat_type,
@@ -63,13 +65,17 @@ def parse_message(message):
         "kind": kind,
         "body": body,
         "rawSource": message
-    }, {
+    }), Box({
         "fileId": file_id,
         "fileUniqueId": file_unique_id
-    }]
+    })]
 
 def get_bot_generated_message(ctx, send_message_response, attributes):
-    chat_id, quote_id, kind, body = attributes['chatId'], attributes['quoteId'], attributes['kind'], attributes['body']
+    chat_id = attributes.get('chat_id')
+    quote_id = attributes.get('quote_id')
+    kind = attributes.get('kind')
+    body = attributes.get('body')
+
     message = {
         "entry": [
             {
@@ -80,7 +86,7 @@ def get_bot_generated_message(ctx, send_message_response, attributes):
                                 {
                                     "timestamp": (int(time.time() * 1000) / 1e3),
                                     "from": os.environ['WHATSAPP_PHONE_NUMBER'],
-                                    "id": send_message_response['data']['messages'][0]['id'],
+                                    "id": send_message_response['messages'][0]['id'],
                                     "type": kind,
                                     "text": {
                                         "body": body
@@ -96,30 +102,29 @@ def get_bot_generated_message(ctx, send_message_response, attributes):
 
     return message
 
-import os
-import requests
-import asyncio
-from dotenv import load_dotenv
+def send_message(ctx, attributes):
+    chat_id = attributes.get('chat_id')
+    quote_id = attributes.get('quote_id')
+    kind = attributes.get('kind')
+    body = attributes.get('body')
 
-load_dotenv()
+    response = send_message_raw(ctx, attributes)
 
-async def send_message(ctx, attributes):
-    chat_id, quote_id, kind, body = attributes.values()
-
-    response = await send_message_raw(ctx, attributes)
-
-    if 'data' in response:
+    if response:
         message = get_bot_generated_message(ctx, response, attributes)
         parsed_message, file_info = parse_message(message)
 
-        parsed_message['chatId'] = chat_id
+        parsed_message.chatId = chat_id
         ctx.log(parsed_message)
 
-        await insert_message(ctx, parsed_message)
+        messages_service.insert_message(ctx, parsed_message)
         ctx.log(f"Message inserted successfully: {parsed_message}")
 
-async def send_message_raw(ctx, attributes):
-    chat_id, quote_id, kind, body = attributes.values()
+def send_message_raw(ctx, attributes):
+    chat_id = attributes.get('chat_id')
+    quote_id = attributes.get('quote_id')
+    kind = attributes.get('kind')
+    body = attributes.get('body')
 
     if kind != "text":
         return
@@ -157,15 +162,15 @@ async def send_message_raw(ctx, attributes):
     return response.json()
 
 def is_message_for_me(msg):
-    if msg['chatType'] == "private":
+    if msg.chatType == "private":
         return True
 
     return False
 
-async def get_voice_mp3_file(ctx, parsed_message, file_info):
+def get_voice_mp3_file(ctx, parsed_message, file_info):
     ctx.log(f"getVoiceMp3File: {parsed_message}, {file_info}")
-    url = await get_download_url(ctx, file_info['fileId'])
-    ogg_file_path, mp3_file_path = get_audio_file_paths(ctx, parsed_message['chatId'], file_info)
+    url = get_download_url(ctx, file_info.fileId)
+    ogg_file_path, mp3_file_path = get_audio_file_paths(ctx, parsed_message.chatId, file_info)
     is_download_successful = False
 
     try:
@@ -173,8 +178,8 @@ async def get_voice_mp3_file(ctx, parsed_message, file_info):
             "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
         }
 
-        is_download_successful = await download_services.download_stream_file(ctx, url, ogg_file_path, headers)
-        await media_converters.convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path)
+        is_download_successful = download_services.download_stream_file(ctx, url, ogg_file_path, headers)
+        media_converters.convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path)
 
         return mp3_file_path
 
@@ -183,7 +188,7 @@ async def get_voice_mp3_file(ctx, parsed_message, file_info):
         if delete_ogg_file:
             file_services.delete_file(ctx, ogg_file_path)
 
-async def get_download_url(ctx, file_id):
+def get_download_url(ctx, file_id):
     ctx.log(f"getDownloadUrl: {file_id}")
     headers = {
         "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
@@ -219,7 +224,7 @@ def set_typing(chat_id, in_flight):
     return
 
 
-async def set_status_read(ctx, message_id):
+def set_status_read(ctx, message_id):
     ctx.log("setStatusRead")
     headers = {
         "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",

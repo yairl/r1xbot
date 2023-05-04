@@ -2,17 +2,17 @@ import os
 from pathlib import Path
 import tempfile
 
-async def delete_file_unsafe(ctx, file_path):
+def delete_file_unsafe(ctx, file_path):
     try:
         os.remove(file_path)
         ctx.log("deleteFile succeeded")
     except OSError as err:
         raise err
 
-async def delete_file(ctx, file_path):
+def delete_file(ctx, file_path):
     ctx.log(f"deleteFile filePath={file_path}")
     try:
-        await delete_file_unsafe(ctx, file_path)
+        delete_file_unsafe(ctx, file_path)
     except OSError as err:
         ctx.log(f"deleteFile: deleteFileUnsafe thrown {err}")
 
