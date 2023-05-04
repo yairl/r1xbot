@@ -26,8 +26,11 @@ def process_message(message):
     log_ctx = logger.create_logging_context(ctx["msgCount"])
     log_ctx.log("Starting to handle message")
 
-    result = handle_incoming_message(log_ctx, message['body'])
+    print(message)
+    result = handle_incoming_message(log_ctx, message['Body'])
     log_ctx.log("Finished handling message")
+
+    sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=message['ReceiptHandle'])
 
 def main():
     # Using ThreadPoolExecutor to handle tasks concurrently
@@ -52,7 +55,7 @@ def main():
                     # Wait for all tasks to complete and handle the results
                     for future, receipt_handle in futures:
                         if future.result():
-                            delete_message_from_queue(receipt_handle)
+                            print('Done processing.')
                 else:
                     print("No messages in the queue. Waiting...")
             except ClientError as e:

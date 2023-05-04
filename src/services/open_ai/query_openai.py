@@ -6,6 +6,9 @@ import re
 import requests
 import traceback
 
+from box import Box
+
+
 from src.services.token_prediction import token_predictor
 
 openai.api_key = os.environ['OPENAI_API_KEY']
@@ -17,8 +20,8 @@ def deep_clone(o):
 
 def convert_message_to_chat_format(message):
     converted_message = {
-        "role": "assistant" if message["isSentByMe"] else "user",
-        "content": message["body"],
+        "role": "assistant" if message.isSentByMe else "user",
+        "content": message.body,
     }
     return converted_message
 
@@ -33,11 +36,11 @@ def get_system_message(ctx, messenger_name):
     return system_message
 
 
-def db_messages_to_messages(messages):
+def db_messages2messages(messages):
     parsed_messages = []
 
     for message in messages:
-        if message["body"] is None:
+        if message.body is None:
             continue
         parsed_messages.append(convert_message_to_chat_format(message))
 
@@ -73,7 +76,7 @@ def get_limited_message_history(ctx, messages, prompt_template):
 
 
 def get_chat_completion(ctx, messenger_name, messages, direct):
-    parsed_messages = deep_clone(messages) if direct else db_messages_2_messages(messages)
+    parsed_messages = deep_clone(messages) if direct else db_messages2messages(messages)
 
     system_message = get_system_message(ctx, messenger_name)
     messages_upto_max_tokens = get_limited_message_history(
@@ -97,11 +100,11 @@ def get_chat_completion_core(ctx, messenger_name, messages):
 
         ctx.log("getChatCompletionCore response: ", completion['choices'][0]['message']['content'])
 
-        return {
+        return Box({
             "response": completion['choices'][0]['message']['content'],
             "promptTokens": completion['usage']['prompt_tokens'],
             "completionTokens": completion['usage']['completion_tokens']
-        }
+        })
     except Exception as e:
         if hasattr(e, "response"):
             ctx.log("error: ", e.response.status, e.response.data)
@@ -230,7 +233,7 @@ def get_chat_completion_with_tools(ctx, messenger_name, messages, direct):
     try:
         ctx.log("Starting getChatCompletionWithTools.")
 
-        parsed_messages = deep_clone(messages) if direct else db_messages_2_messages(messages)
+        parsed_messages = deep_clone(messages) if direct else db_messages2messages(messages)
         ctx.log({"messages": parsed_messages})
 
         prev_responses = []
@@ -250,11 +253,11 @@ def get_chat_completion_with_tools(ctx, messenger_name, messages, direct):
             if answer:
                 ctx.log(f"Answer returned: {answer}")
 
-                return {
+                return Box({
                     "response": answer,
                     "promptTokens": 0,
                     "completionTokens": 0
-                }
+                })
 
             if tool and input_:
                 ctx.log(f"Invoking TOOL {tool} with INPUT {input_}")
@@ -360,7 +363,7 @@ def parse_geolocation(location_data):
     lat = float(match.group(1)) * (-1 if match.group(2) == 'S' else 1)
     lon = float(match.group(3)) * (-1 if match.group(4) == 'W' else 1)
 
-    return {'lat': lat, 'lon': lon}
+    return Box({'lat': lat, 'lon': lon})
 
 def invoke_weather_search(ctx, input):
     ctx.log(f'invokeWeatherSearch, input={input}')
@@ -371,9 +374,9 @@ def invoke_weather_search(ctx, input):
     # geo_res = serper.call(f'{input} long lat')
     geo_res = 'GEO_RESULT_PLACEHOLDER'  # Placeholder
 
-    lat, lon = parse_geolocation(geo_res)
+    geo = parse_geolocation(geo_res)
 
-    ctx.log(f'Geolocation: lat={lat} lon={lon}')
+    ctx.log(f'Geolocation: lat={geo.lat} lon={geo.lon}')
 
     w_res = requests.get(f'https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_hours,precipitation_probability_max,windspeed_10m_max&forecast_days=3&timezone=auto')
     w_res_json = w_res.json()

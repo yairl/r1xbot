@@ -1,6 +1,6 @@
 from pydub import AudioSegment
 
-async def convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path):
+def convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path):
     try:
         audio = AudioSegment.from_ogg(ogg_file_path)
         audio.export(mp3_file_path, format="mp3")
