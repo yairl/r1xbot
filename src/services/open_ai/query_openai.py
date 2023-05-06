@@ -29,7 +29,7 @@ def convert_message_to_chat_format(message):
 def get_system_message(ctx, messenger_name):
     system_message = {
         "role": "system",
-        "content": f"You are Robot 1-X (R1X), a helpful assistant developed by the Planet Express team and integrated into a {messenger_name} chat. "
+        "content": f"You are Robot 1-X (R1X), a helpful and cheerful assistant developed by the Planet Express team and integrated into a {messenger_name} chat. "
         f"More information about R1X is available at https://r1x.ai.",
     }
 
@@ -272,17 +272,6 @@ def get_chat_completion_with_tools(ctx, messenger_name, messages, direct):
 
     return get_chat_completion(ctx, messenger_name, messages, direct)
 
-def escape_special_chars(s):
-    return s.translate(str.maketrans({
-        "\n": "\\n",
-        "\r": "\\r",
-        "\t": "\\t",
-        "\b": "\\b",
-        "\f": "\\f",
-        "\\": "\\\\",
-    }))
-
-
 def completion_iterative_step(ctx, messenger_name, history, prev_responses):
     result = {'answer': None, 'tool': None, 'input': None}
 
@@ -317,10 +306,8 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses):
     if not matches:
         return result
 
-    escaped_match = escape_special_chars(matches.group(1))
-    ctx.log(f'completionIterativeStep: matched response: {escaped_match}')
-
-    json_reply = json.loads(escaped_match)
+    json_reply = eval(matches.group(1))
+    ctx.log(f'completionIterativeStep: matched response: {json_reply}')
 
     result['answer'] = json_reply.get('ANSWER')
     if result['answer']:
@@ -386,15 +373,15 @@ def invoke_weather_search(ctx, input):
 def create_transcription(ctx, mp3_file_path):
     t0 = time.time()
 
-    # Replace this with an appropriate call to the OpenAI API
-    # transcription = openai.create_transcription(  
-    #     open(mp3_file_path, 'rb'),
-    #     os.environ['OPENAI_SPEECH_TO_TEXT_MODEL'],
-    # )
-    transcription = {'data': {'text': 'TRANSCRIPTION_PLACEHOLDER'}}  # Placeholder
+    transcript = openai.Audio.transcribe(
+        file = open(mp3_file_path, "rb"),
+        model = os.environ['OPENAI_SPEECH_TO_TEXT_MODEL']
+    )
+
+    transcription = transcript['text']
 
     time_taken = int((time.time() - t0) * 1000)
 
-    ctx.log(f'createTranscription: timeTaken={time_taken}ms transcription={transcription["data"]["text"]}')
-    return transcription['data']['text']
+    ctx.log(f'createTranscription: timeTaken={time_taken}ms transcription={transcription}')
+    return transcription
 
