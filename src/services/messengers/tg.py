@@ -4,6 +4,7 @@ import requests
 from src.utils import download_services, media_converters, file_services
 from src.services.messages import messages_service
 from box import Box
+import threading
 
 class MessageKindE:
     TEXT = 'text'
@@ -146,14 +147,17 @@ def set_typing(chat_id, in_flight):
     if not in_flight["working"]:
         return
 
-    base_timeout = 6000
-    extra_timeout = random.randint(0, 1500)
-    time.sleep((base_timeout + extra_timeout) / 1000)
-
     requests.post(
         f"https://api.telegram.org/bot{os.environ['TELEGRAM_BOT_TOKEN']}/sendChatAction",
         json={"chat_id": chat_id, "action": "typing"},
     )
+
+    base_timeout = 6
+    extra_timeout = random.randint(0, 1500)
+    timeout = base_timeout + (extra_timeout / 1000)
+
+    timer = threading.Timer(timeout, set_typing, args=(chat_id, in_flight))
+    timer.start()
 
 def set_status_read(ctx, message_id):
     pass

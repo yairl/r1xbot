@@ -5,7 +5,7 @@ from src.services.open_ai.query_openai import get_chat_completion, get_chat_comp
 from src.db.models.user_settings import UserSettings
 from src.services.messages.messages_service import insert_message, get_message_history
 import src.services.messengers as messengers
-from src.utils.file_services import delete_file
+from src.utils import file_services
 from posthog import Posthog
 import src.db.models.index as db_index
 from sqlalchemy import desc
@@ -69,7 +69,8 @@ def handle_incoming_message_core(ctx, event, in_flight):
         quote_transcription, unused_reply_to_voice_message = get_voice_message_actions(messenger.is_message_for_me(parsed_message))
 
         if quote_transcription:
-            prefix_text = "\u1F5E3\u1F4DD: "
+            
+            prefix_text = "\N{SPEAKING HEAD IN SILHOUETTE}\N{MEMO}: "
             messenger.send_message_raw(ctx, {
                 "chat_id": parsed_message.chatId,
                 "kind": "text",
