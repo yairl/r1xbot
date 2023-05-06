@@ -1,0 +1,20 @@
+Building Python 3.11.3
+----------------------
+apt-get install wget build-essential libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev liblzma-dev -y
+
+cd /tmp
+
+wget https://www.python.org/ftp/python/3.11.3/Python-3.11.3.tgz
+tar zxf https://www.python.org/ftp/python/3.11.3/Python-3.11.3.tgz
+
+cd Python-3.11.3
+./configure --enable-optimizations
+
+make -j 4
+
+make altinstall
+
+update-alternatives --install /usr/bin/python3 python3 /usr/local/bin/python3.9 1
+
+python3 -m pip install --upgrade pip
+
