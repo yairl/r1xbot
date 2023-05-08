@@ -38,7 +38,7 @@ def handle_incoming_message(ctx, event):
     try:
         handle_incoming_message_core(ctx, event, in_flight)
     except Exception as error:
-        ctx.log("Message processing failed: ", error.stack)
+        ctx.error("Message processing failed: ", error.stack, error)
         raise Exception("Message processing failed.")
     finally:
         in_flight["working"] = False

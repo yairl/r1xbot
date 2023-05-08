@@ -160,7 +160,7 @@ def send_message_raw(ctx, attributes):
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as error:
-        ctx.log(f"sendMessageRaw: exception. error.response.data={error.response.data}")
+        ctx.log(f"sendMessageRaw: exception. error={error}")
         raise error
 
     return response.json()
@@ -205,7 +205,7 @@ def get_download_url(ctx, file_id):
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as error:
-        ctx.log(f"getDownloadUrl: exception. error.response.data={error.response.data}")
+        ctx.log(f"getDownloadUrl: exception. error={error}")
         raise error
 
     download_url = response.json()['url']
@@ -249,7 +249,7 @@ def set_status_read(ctx, message_id):
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as error:
-        ctx.log(f"setStatusRead: exception. error.response.data={error.response.data}")
+        ctx.log(f"setStatusRead: exception. error={error}")
         return
 
     if response.json().get('success') != True:

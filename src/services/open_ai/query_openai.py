@@ -28,10 +28,14 @@ def convert_message_to_chat_format(message):
 
 
 def get_system_message(ctx, messenger_name):
+    current_date = time.strftime("%B %d, %Y", time.gmtime()) 
+
     system_message = {
         "role": "system",
         "content": f"""You are Robot 1-X (R1X), a helpful, cheerful assistant developed by the Planet Express team and integrated into a {messenger_name} chat.
 You are based on GPT-3.5 technology. More information about R1X is available at https://r1x.ai.
+Today is {current_date}.
+
 If Robot 1-X does not know, it truthfully says so.
 If user asks for information that Robot 1-X does not have but can estimate, Robot 1-X will provide the estimate, while mentioning it is an estimate and not a fact.
 Generally speaking, Robot 1-X tries to be verbose in his answers when possible."""
@@ -111,9 +115,9 @@ def get_chat_completion_core(ctx, messenger_name, messages):
         })
     except Exception as e:
         if hasattr(e, "response"):
-            ctx.log("error: ", e.response.status, e.response.data)
+            ctx.error(f"error: e.response={e.response}")
         else:
-            ctx.log("error: ", e.message)
+            ctx.error("error: e={e}", e)
 
         ctx.log("error generating completion from OpenAI.")
         raise Exception("error generating completion from OpenAI.")
