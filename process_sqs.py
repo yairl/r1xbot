@@ -11,55 +11,71 @@ init_env_vars.config()
 
 from src.controllers.handle_incoming_messages import handle_incoming_message
 
-from concurrent.futures import ThreadPoolExecutor
+import threading
+import traceback
 
-num_of_consumers = 10
-consumers = []
-ctx = {"msgCount": 0}
+class ThreadSafeCounter:
+    def __init__(self):
+        self._counter = 0
+        self._lock = threading.Lock()
 
-sqs = boto3.client("sqs", region_name="eu-central-1")
-queue_url = os.environ["SQS_QUEUE_URL"]
+    def get_and_increment(self):
+        with self._lock:
+            val = self._counter
+            self._counter += 1
+            return val
+
+# Usage
+counter = ThreadSafeCounter()
+
+NUM_CONSUMERS = 10
+
+QUEUE_URL = os.environ["SQS_QUEUE_URL"]
 
 def process_message(message):
-    global ctx
-    ctx["msgCount"] += 1
-    log_ctx = logger.create_logging_context(ctx["msgCount"])
+    ctx = { 'msgCount' : counter.get_and_increment() }
+
+    log_ctx = logger.create_logging_context(ctx['msgCount'])
     log_ctx.log("Starting to handle message")
 
     print(message)
     result = handle_incoming_message(log_ctx, message['Body'])
     log_ctx.log("Finished handling message")
 
-    sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=message['ReceiptHandle'])
+def single_sqs_handler(queue):
+    while True:
+        try:
+            single_sqs_handler_core(queue)
+        except Exception as e:
+            logger.logger.error(f'Exception occurred; {e}; stack trace: ', traceback.format_exc())
+
+def single_sqs_handler_core(queue):
+    response = queue.receive_message(QueueUrl=QUEUE_URL, MaxNumberOfMessages=1, WaitTimeSeconds=20)
+
+    if not 'Messages' in response:
+       return
+
+    # Single message each time
+    message = response['Messages'][0]
+
+    process_message(message)
+
+    queue.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=message['ReceiptHandle'])
+
 
 def main():
-    # Using ThreadPoolExecutor to handle tasks concurrently
-    with ThreadPoolExecutor() as executor:
-        while True:
-            try:
-                # Receive messages from SQS queue
-                logger.logger.info("Listening on SQS queue...")
-                response = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=20)
+    threads = []
 
-                print(response)
+    logger.logger.info(f'Listening on {NUM_CONSUMERS} queues...')
 
-                if 'Messages' in response:
-                    messages = response['Messages']
-                    futures = []
+    for i in range(NUM_CONSUMERS):
+        queue = boto3.client('sqs', region_name='eu-central-1')
+        thread = threading.Thread(target=single_sqs_handler, args=(queue,))
+        thread.start()
+        threads.append(thread)
 
-                    for message in messages:
-                        # Launch a separate task for each message
-                        future = executor.submit(process_message, message)
-                        futures.append((future, message['ReceiptHandle']))
-
-                    # Wait for all tasks to complete and handle the results
-                    for future, receipt_handle in futures:
-                        if future.result():
-                            print('Done processing.')
-                else:
-                    print("No messages in the queue. Waiting...")
-            except ClientError as e:
-                print(f"Error receiving messages from queue. Error: {e}")
+    while True:
+        pass
 
 if __name__ == "__main__":
     main()
