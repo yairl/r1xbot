@@ -3,3 +3,4 @@ node_modules/
 handleMessages.zip
 logs/
 __pycache__/
+.vscode/
