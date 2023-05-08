@@ -97,14 +97,13 @@ def get_chat_completion_core(ctx, messenger_name, messages):
     model = "gpt-4" if getattr(ctx, 'user_channel', None) == "canary" else "gpt-3.5-turbo"
 
     try:
+        ctx.log("Messages: ", messages);
         ctx.log("invoking completion request.")
         completion = openai.ChatCompletion().create(
             model=model,
             messages=messages,
             temperature=0.2
         )
-
-        
 
         ctx.log("getChatCompletionCore response: ", completion['choices'][0]['message']['content'])
 
@@ -266,8 +265,6 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses):
     messages.append(prep_reply_message)
 
     messages.append(new_request)
-
-    ctx.log(messages)
 
     reply = get_chat_completion_core(ctx, messenger_name, messages)
 
