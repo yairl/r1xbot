@@ -2,6 +2,7 @@
 
 import os
 import logging
+import time
 
 import boto3
 from botocore.exceptions import ClientError
@@ -74,8 +75,8 @@ def main():
         thread.start()
         threads.append(thread)
 
-    while True:
-        pass
+    for thread in threads:
+        thread.join()
 
 if __name__ == "__main__":
     main()
