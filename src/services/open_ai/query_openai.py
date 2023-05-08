@@ -90,7 +90,7 @@ def get_chat_completion(ctx, messenger_name, messages, direct):
     return get_chat_completion_core(ctx, messenger_name, messages_upto_max_tokens)
 
 def get_chat_completion_core(ctx, messenger_name, messages):
-    model = "gpt-4" if getattr(ctx, "userChannel", None) == "canary" else "gpt-3.5-turbo"
+    model = "gpt-4" if getattr(ctx, 'user_channel', None) == "canary" else "gpt-3.5-turbo"
 
     try:
         ctx.log("invoking completion request.")
@@ -122,7 +122,7 @@ def get_chat_completion_core(ctx, messenger_name, messages):
 def get_prep_message(ctx, messenger):
     current_date = time.strftime("%B %d, %Y", time.gmtime())
 
-    gpt_ver = 'GPT-4' if getattr(ctx, 'userChannel', None) == 'canary' else 'GPT-3.5'
+    gpt_ver = 'GPT-4' if getattr(ctx, 'user_channel', None) == 'canary' else 'GPT-3.5'
 
     prep_message_stable = {
         "role" : "user",

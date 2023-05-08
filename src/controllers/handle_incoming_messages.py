@@ -5,7 +5,7 @@ from src.services.open_ai.query_openai import get_chat_completion, get_chat_comp
 from src.db.models.user_settings import UserSettings
 from src.services.messages.messages_service import insert_message, get_message_history
 import src.services.messengers as messengers
-from src.utils.file_services import delete_file
+from src.utils import file_services
 
 from posthog import Posthog
 import src.db.models.index as db_index
