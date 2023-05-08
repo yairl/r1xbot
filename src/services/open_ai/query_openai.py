@@ -114,9 +114,9 @@ def get_chat_completion_core(ctx, messenger_name, messages):
         })
     except Exception as e:
         if hasattr(e, "response"):
-            ctx.error(f"error: e.response={e.response}")
+            ctx.log(f"error: e.response={e.response}")
         else:
-            ctx.error("error: e={e}", e)
+            ctx.log("error: e={e}", e)
 
         ctx.log("error generating completion from OpenAI.")
         raise Exception("error generating completion from OpenAI.")

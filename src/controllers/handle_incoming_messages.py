@@ -38,7 +38,7 @@ def handle_incoming_message(ctx, event):
     try:
         handle_incoming_message_core(ctx, event, in_flight)
     except Exception as error:
-        ctx.error("Message processing failed: ", error.stack, error)
+        ctx.log("Message processing failed: ", error.stack, error)
         raise Exception("Message processing failed.")
     finally:
         in_flight["working"] = False
@@ -133,21 +133,28 @@ def handle_incoming_message_core(ctx, event, in_flight):
     )
 
 def send_intro_message(ctx, messenger, parsed_message):
-    intro_message_legal = ("Robot 1-X at your service!\n\n"
-                           "First, be aware that while I always do my best to help, I am not a professional doctor, psychologist, banker or otherwise.\n"
-                           "Some of my replies may provide incorrect information about people, locations and events.\n"
-                           "Always check my suggestions with a professional.\n\n"
-                           "If you're under 18, you must have your parents' permission before you continue talking to me!\n\n"
-                           "Chatting with me means you agree to my Terms of Use (https://r1x.ai/terms-of-use) and Privacy policy (https://r1x.ai/privacy).\n"
-                           "Make sure to read them before continuing this chat.")
+    intro_message_legal = """Robot 1-X at your service!
 
-    intro_message_overview = ("Phew, now that that's out of the way, here are some things you can ask me for:\n\n"
-                              "- Write a bedtime story about Abigail and Jonathan, two superheroes who live next to a river.\n"
-                              "- Plan a 14-day road trip from Milan to Minsk. Include detailed suggestions about where to spend each day.\n"
-                              "- Rewrite the following text with spell-checking and punctuation: pleez send me all the docooments that is need for tomorrow flight im waiting for dem.\n"
-                              "- Please summarize the following text: <copy some text/email here>.\n\n"
-                              "And, you can send me an audio message instead of typing!\n\n"
-                              "How can I help?")
+First, be aware that while I always do my best to help, I am not a professional doctor, psychologist, banker or otherwise.
+Some of my replies may provide incorrect information about people, locations and events.
+Always check my suggestions with a professional.
+
+
+If you're under 18, you must have your parents' permission before you continue talking to me!
+
+Chatting with me means you agree to my Terms of Use (https://r1x.ai/terms-of-use) and Privacy policy (https://r1x.ai/privacy).
+Make sure to read them before continuing this chat."""
+
+    intro_message_overview = """Phew, now that that's out of the way, here are some things you can ask me for:
+
+- Write a bedtime story about Abigail and Jonathan, two superheroes who live next to a river.
+- Plan a 14-day road trip from Milan to Minsk. Include detailed suggestions about where to spend each day.
+- Rewrite the following text with spell-checking and punctuation: pleez send me all the docooments that is need for tomorrow flight im waiting for dem.
+- Please summarize the following text: <copy some text/email here>.
+
+And, you can send me an audio message instead of typing!
+
+How can I help?"""
 
     messenger.send_message(ctx, {
         "chat_id": parsed_message["chatId"],
@@ -156,7 +163,7 @@ def send_intro_message(ctx, messenger, parsed_message):
     })
 
     messenger.send_message(ctx, {
-        "chatId": parsed_message["chatId"],
+        "chat_id": parsed_message["chatId"],
         "kind": "text",
         "body": intro_message_overview
     })
