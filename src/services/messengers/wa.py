@@ -129,6 +129,10 @@ def send_message_raw(ctx, attributes):
     if kind != "text":
         return
 
+    if len(body) > 4000:
+        ctx.log('send_message_raw: message body too long, %d > 4000' % len(body))
+        body = body[0:3999]
+
     headers = {
         "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
         "Content-Type": "application/json"
