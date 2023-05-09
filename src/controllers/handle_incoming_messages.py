@@ -2,13 +2,13 @@ import json
 import os
 
 from src.services.open_ai.query_openai import get_chat_completion, get_chat_completion_with_tools, create_transcription
-from src.db.models.user_settings import UserSettings
+from src import db_models
 from src.services.messages.messages_service import insert_message, get_message_history
 import src.services.messengers as messengers
 from src.utils import file_services
 
 from posthog import Posthog
-import src.db.models.index as db_index
+import src.db.models as db_models
 from sqlalchemy import desc
 
 posthog_client = Posthog(
@@ -18,10 +18,10 @@ posthog_client = Posthog(
 
 def get_user_channel(parsed_message):
     user_id = f"{parsed_message.source}:{parsed_message.chatId}"
-    session = db_index.Session()
-    settings = session.query(UserSettings) \
-                .filter(UserSettings.user_id == user_id) \
-                .order_by(desc(UserSettings.createdAt)) \
+    session = db_models.Session()
+    settings = session.query(db_models.UserSettings) \
+                .filter(db_models.UserSettings.user_id == user_id) \
+                .order_by(desc(db_models.UserSettings.createdAt)) \
                 .limit(1) \
                 .one_or_none()
 
