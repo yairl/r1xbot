@@ -46,6 +46,7 @@ def handle_incoming_message(ctx, event):
 
 
 def handle_incoming_message_core(ctx, event, in_flight):
+    start = time.time()
     parsed_event = json.loads(event)
     messenger = messengers.__all__[parsed_event["source"]]
 
@@ -126,10 +127,11 @@ def handle_incoming_message_core(ctx, event, in_flight):
         event = 'reply-sent',
         properties = {
             'senderId': parsed_message.senderId,
-            'promptTokens': completion.promptTokens,
-            'completionTokens': completion.completionTokens,
-            'totalTokens': completion.promptTokens + completion.completionTokens,
-            "responseTime_ms": int((time.time() - parsed_message.messageTimestamp)*1000)
+            'prompt_tokens': completion.promptTokens,
+            'completion_tokens': completion.completionTokens,
+            'total_tokens': completion.promptTokens + completion.completionTokens,
+            "response_time_ms": int((time.time() - parsed_message.messageTimestamp) * 1000),
+            'processing_time_ms': int((time.time() - start) * 1000)
         }
     )
 
