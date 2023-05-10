@@ -1,3 +1,4 @@
+import time
 import json
 import os
 
@@ -120,7 +121,6 @@ def handle_incoming_message_core(ctx, event, in_flight):
         'kind': "text",
         'body': completion.response
     });
-
     posthog_client.capture(
         distinct_id = f'{parsed_message.source}:{parsed_message.chatId}',
         event = 'reply-sent',
@@ -128,7 +128,8 @@ def handle_incoming_message_core(ctx, event, in_flight):
             'senderId': parsed_message.senderId,
             'promptTokens': completion.promptTokens,
             'completionTokens': completion.completionTokens,
-            'totalTokens': completion.promptTokens + completion.completionTokens
+            'totalTokens': completion.promptTokens + completion.completionTokens,
+            "responseTime_ms": int((time.time() - parsed_message.messageTimestamp)*1000)
         }
     )
 
