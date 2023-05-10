@@ -12,7 +12,7 @@ from box import Box
 from src.services.token_prediction import token_predictor
 from src.infra.context import Context
 from langchain.utilities import google_serper
-
+from src.utils.posthog_wrapper import capture_open_ai_api_call
 
 openai.api_key = os.environ['OPENAI_API_KEY']
 
@@ -101,11 +101,12 @@ def get_chat_completion_core(ctx, messenger_name, messages):
     try:
         ctx.log("Messages: ", messages);
         ctx.log("invoking completion request.")
-        completion = openai.ChatCompletion().create(
-            model=model,
-            messages=messages,
-            temperature=0.2
-        )
+        with capture_open_ai_api_call(ctx, 'chat_completion', model):
+            completion = openai.ChatCompletion().create(
+                model=model,
+                messages=messages,
+                temperature=0.2
+            )
 
         ctx.log("getChatCompletionCore response: ", completion['choices'][0]['message']['content'])
 
@@ -351,8 +352,10 @@ def create_transcription(ctx:Context, mp3_file_path):
     ctx.log(f'createTranscription: preferred user language is {language}')
 
     t0 = time.time()
-
-    transcript = openai.Audio.transcribe(
+    
+    model = os.environ['OPENAI_SPEECH_TO_TEXT_MODEL']
+    with capture_open_ai_api_call(ctx, 'audio_transcribe', model):
+        transcript = openai.Audio.transcribe(
         file = open(mp3_file_path, "rb"),
         model = os.environ['OPENAI_SPEECH_TO_TEXT_MODEL'],
         language = language

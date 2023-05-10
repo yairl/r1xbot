@@ -1,6 +1,5 @@
 import time
 import json
-import os
 
 from typing import Any, Dict
 
@@ -16,11 +15,7 @@ from posthog import Posthog
 from sqlalchemy import desc
 
 from src.infra.context import Context
-
-posthog_client = Posthog(
-    os.environ['POSTHOG_API_KEY'],
-    host='https://app.posthog.com'
-)
+from src.utils.posthog_wrapper import PostHog
 
 def get_user_settings(parsed_message) -> Dict[str, Any]: 
     user_id = f"{parsed_message.source}:{parsed_message.chatId}"
@@ -59,7 +54,7 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
         return
 
     parsed_message, file_info = parse_message_result
-    
+    ctx.distinct_user_id = f"{parsed_message.source}:{parsed_message.chatId}"
     messenger.set_status_read(ctx, parsed_message.messageId)
 
     ctx.user_settings = get_user_settings(parsed_message)
@@ -84,16 +79,8 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
                 "body": prefix_text + parsed_message.body,
                 "quote_id": parsed_message.messageId
             })
-
-        posthog_client.capture(
-            distinct_id = f"{parsed_message.source}:{parsed_message.chatId}",
-            event = "message-transcribed",
-            properties = {
-                'sender_id': parsed_message.senderId,
-                'channel': ctx.user_channel,
-                'length_in_seconds': -1
-            }
-        )
+        
+        PostHog.message_transcribed(ctx, parsed_message)
 
     message = insert_message(ctx, parsed_message)
 
@@ -128,24 +115,7 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
         'body': completion.response
     })
 
-    response_time_ms = int((time.time() - parsed_message.messageTimestamp) * 1000)
-    processing_time_ms = int((time.time() - start) * 1000)
-    completion_tokens_per_sec = completion.completionTokens / (processing_time_ms / 1000)
-
-    posthog_client.capture(
-        distinct_id = f'{parsed_message.source}:{parsed_message.chatId}',
-        event = 'reply-sent',
-        properties = {
-            'senderId': parsed_message.senderId,
-            'channel': ctx.user_channel,
-            'prompt_tokens': completion.promptTokens,
-            'completion_tokens': completion.completionTokens,
-            'completion_tokens_per_sec': completion_tokens_per_sec,
-            'total_tokens': completion.promptTokens + completion.completionTokens,
-            'response_time_ms': response_time_ms,
-            'processing_time_ms': processing_time_ms,
-        }
-    )
+    PostHog.reply_sent(ctx, parsed_message, completion, start)
 
 def send_intro_message(ctx:Context, messenger, parsed_message):
     intro_message_legal = """Robot 1-X at your service!
