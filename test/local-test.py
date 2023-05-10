@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 
 import os
-os.environ['PYTHONPATH']='/home/yair/r1xbot_py'
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# os.environ['PYTHONPATH']='/home/dannysi/src/r1xbot'
 from src.utils.init_env_vars import config
 config()
 
