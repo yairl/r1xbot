@@ -26,7 +26,7 @@ def get_user_channel(parsed_message):
                 .limit(1) \
                 .one_or_none()
 
-    channel = settings.settings['channel'] if settings else None
+    channel = settings.settings['channel'] if settings else 'stable'
 
     session.close()
 
@@ -85,8 +85,9 @@ def handle_incoming_message_core(ctx, event, in_flight):
             distinct_id = f"{parsed_message.source}:{parsed_message.chatId}",
             event = "message-transcribed",
             properties = {
-                "sender_id": parsed_message.senderId,
-                "length_in_seconds": -1
+                'sender_id': parsed_message.senderId,
+                'channel': ctx.user_channel,
+                'length_in_seconds': -1
             }
         )
 
@@ -127,11 +128,12 @@ def handle_incoming_message_core(ctx, event, in_flight):
         event = 'reply-sent',
         properties = {
             'senderId': parsed_message.senderId,
+            'channel': ctx.user_channel,
             'prompt_tokens': completion.promptTokens,
             'completion_tokens': completion.completionTokens,
             'total_tokens': completion.promptTokens + completion.completionTokens,
-            "response_time_ms": int((time.time() - parsed_message.messageTimestamp) * 1000),
-            'processing_time_ms': int((time.time() - start) * 1000)
+            'response_time_ms': int((time.time() - parsed_message.messageTimestamp) * 1000),
+            'processing_time_ms': int((time.time() - start) * 1000),
         }
     )
 
