@@ -3,7 +3,9 @@ from src.db.models import index as db_index
 from src.db.models.messages import Message
 import datetime
 
-def insert_message(ctx, attributes):
+from src.infra.context import Context
+
+def insert_message(ctx:Context, attributes):
     source = attributes['source']
     message_timestamp = datetime.datetime.fromtimestamp(attributes['messageTimestamp'], tz=datetime.timezone.utc)
     chat_type = attributes['chatType']
@@ -50,7 +52,7 @@ def insert_message(ctx, attributes):
 
     return message
 
-def get_message_history(ctx, message, options=None):
+def get_message_history(ctx:Context, message, options=None):
     if options is None:
         options = {}
 
