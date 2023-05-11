@@ -1,7 +1,6 @@
 import threading
 from typing import Any
 from src.utils import logger
-# import src.db.models.index as db_index
 
 
 class ThreadSafeCounter:
