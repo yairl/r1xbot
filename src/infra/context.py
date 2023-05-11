@@ -19,6 +19,7 @@ counter = ThreadSafeCounter()
 
 class Context(object):
     user_channel: Any
+    distinct_user_id: str
     
     def __init__(self):
         self.msg_count = counter.get_and_increment()

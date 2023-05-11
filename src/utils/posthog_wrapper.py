@@ -3,6 +3,8 @@ import os
 import time
 from posthog import Posthog
 
+from src.infra.context import Context
+
 class PostHog(object):
     posthog_client = Posthog(
         os.environ['POSTHOG_API_KEY'],
@@ -22,9 +24,9 @@ class PostHog(object):
         )
         
     @classmethod
-    def reply_sent(cls, ctx, parsed_message, completion, process_start):
+    def reply_sent(cls, ctx:Context, parsed_message, completion, process_start:float):
         cls.posthog_client.capture(
-            distinct_id = f'{parsed_message.source}:{parsed_message.chatId}',
+            distinct_id = ctx.distinct_user_id,
             event = 'reply-sent',
             properties = {
                 'senderId': parsed_message.senderId,
@@ -38,9 +40,9 @@ class PostHog(object):
         )
         
     @classmethod
-    def open_ai_api_call(cls, ctx, action:str, model:str, runtime:int):
+    def open_ai_api_call(cls, ctx:Context, action:str, model:str, runtime:int):
         cls.posthog_client.capture(
-            distinct_id= 1246,# TODO
+            distinct_id= ctx.distinct_user_id,
             event='open_ai_api_call',
             properties= {
                 'action': action,
@@ -50,7 +52,7 @@ class PostHog(object):
         )
 
 @contextmanager
-def capture_open_ai_api_call(ctx, action, model):
+def capture_open_ai_api_call(ctx:Context, action:str, model:str):
     start = time.time()
     yield
     PostHog.open_ai_api_call(ctx, action, model, int((time.time() - start)*1000))

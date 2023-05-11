@@ -12,7 +12,7 @@ from box import Box
 from src.services.token_prediction import token_predictor
 from src.infra.context import Context
 from langchain.utilities import google_serper
-from utils.posthog_wrapper import capture_open_ai_api_call
+from src.utils.posthog_wrapper import capture_open_ai_api_call
 
 openai.api_key = os.environ['OPENAI_API_KEY']
 

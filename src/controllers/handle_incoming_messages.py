@@ -11,7 +11,7 @@ import src.db.models.index as db_index
 from sqlalchemy import desc
 
 from src.infra.context import Context
-from utils.posthog_wrapper import PostHog
+from src.utils.posthog_wrapper import PostHog
 
 def get_user_channel(parsed_message):
     user_id = f"{parsed_message.source}:{parsed_message.chatId}"
@@ -52,6 +52,7 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
         return
 
     parsed_message, file_info = parse_message_result
+    ctx.distinct_user_id = f"{parsed_message.source}:{parsed_message.chatId}"
 
     messenger.set_status_read(ctx, parsed_message.messageId)
 
