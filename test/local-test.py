@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 import os
-os.environ['PYTHONPATH']='/home/yair/r1xbot_py'
+import sys
+sys.path.append('/home/ishumsky/dev/r1xbot')
 from src.utils.init_env_vars import config
 config()
 
@@ -27,6 +28,7 @@ def run():
     history = json.loads(data)["messages"]
 
     ctx = create_logging_context(0)
+    ctx.user_channel = 'canary'
     reply = get_chat_completion_with_tools(ctx, 'WhatsApp', history, True)
 
     print({'reply': reply})
