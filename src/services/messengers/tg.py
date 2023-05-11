@@ -7,6 +7,7 @@ from box import Box
 
 import threading
 
+from src.infra.context import Context
 
 class MessageKindE:
     TEXT = 'text'
@@ -58,7 +59,7 @@ def parse_message(message):
         })
     )
 
-def send_message(ctx, attributes):
+def send_message(ctx:Context, attributes):
     response = send_message_raw(ctx, attributes)
 
     if response['ok']:
@@ -70,7 +71,7 @@ def send_message(ctx, attributes):
         messages_service.insert_message(ctx, parsed_message)
         ctx.log(f'Message inserted successfully: {parsed_message}')
 
-def send_message_raw(ctx, attributes):
+def send_message_raw(ctx:Context, attributes):
     chat_id = attributes.get('chat_id')
     quote_id = attributes.get('quote_id')
     kind = attributes.get('kind')
@@ -103,7 +104,7 @@ def is_message_for_me(msg):
 
     return False
 
-def get_voice_mp3_file(ctx, parsed_message, file_info):
+def get_voice_mp3_file(ctx:Context, parsed_message, file_info):
     url = get_download_url(ctx, file_info.fileId)
     ogg_file_path, mp3_file_path = get_audio_file_paths(ctx, parsed_message.chatId, file_info)
     is_download_successful = False
@@ -118,7 +119,7 @@ def get_voice_mp3_file(ctx, parsed_message, file_info):
         if delete_ogg_file:
             file_services.delete_file(ctx, ogg_file_path)
 
-def get_download_url(ctx, file_id):
+def get_download_url(ctx:Context, file_id):
     args = {"file_id": file_id}
 
     response = requests.post(
@@ -136,7 +137,7 @@ def get_download_url(ctx, file_id):
     ctx.log(f"getDownloadUrl: downloadUrl={download_url}")
     return download_url
 
-def get_audio_file_paths(ctx, chat_id, file_info):
+def get_audio_file_paths(ctx:Context, chat_id, file_info):
     temp_dir_path = file_services.make_temp_dir_name(f"r1x/tg/{chat_id}_")
     file_path_name = os.path.join(temp_dir_path, "audio")
     ogg_file_path = f"{file_path_name}.ogg"
@@ -161,7 +162,7 @@ def set_typing(chat_id, in_flight):
     timer = threading.Timer(timeout, set_typing, args=(chat_id, in_flight))
     timer.start()
 
-def set_status_read(ctx, message_id):
+def set_status_read(ctx:Context, message_id):
     pass
     
 # setStatusRead is not needed in Python, as it's an empty function in the JavaScript code.

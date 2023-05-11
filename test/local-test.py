@@ -2,7 +2,8 @@
 
 import os
 import sys
-sys.path.append('/home/ishumsky/dev/r1xbot')
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from src.utils.init_env_vars import config
 config()
 

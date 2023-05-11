@@ -10,7 +10,9 @@ from box import Box
 
 
 from src.services.token_prediction import token_predictor
+from src.infra.context import Context
 from langchain.utilities import google_serper
+
 
 openai.api_key = os.environ['OPENAI_API_KEY']
 
@@ -27,7 +29,7 @@ def convert_message_to_chat_format(message):
     return converted_message
 
 
-def get_system_message(ctx, messenger_name):
+def get_system_message(ctx:Context, messenger_name):
     current_date = time.strftime("%B %d, %Y", time.gmtime()) 
 
     system_message = {
@@ -83,7 +85,7 @@ def get_limited_message_history(ctx, messages, prompt_template):
     return merged_messages
 
 
-def get_chat_completion(ctx, messenger_name, messages, direct):
+def get_chat_completion(ctx:Context, messenger_name, messages, direct):
     parsed_messages = deep_clone(messages) if direct else db_messages2messages(messages)
 
     system_message = get_system_message(ctx, messenger_name)
@@ -122,7 +124,7 @@ def get_chat_completion_core(ctx, messenger_name, messages):
         raise Exception("error generating completion from OpenAI.")
 
 
-def get_prep_message(ctx, messenger):
+def get_prep_message(ctx:Context, messenger):
     current_date = time.strftime("%B %d, %Y", time.gmtime())
 
     is_debug_prompt = False
@@ -291,7 +293,7 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses):
 
     return result
 
-def invoke_tool(ctx, tool, input):
+def invoke_tool(ctx:Context, tool, input):
     tool_canon = tool.strip().upper()
 
     if tool_canon.startswith('SEARCH'):
@@ -322,7 +324,7 @@ def parse_geolocation(location_data):
 
     return Box({'lat': lat, 'lon': lon})
 
-def invoke_weather_search(ctx, input):
+def invoke_weather_search(ctx:Context, input):
     ctx.log(f'invokeWeatherSearch, input={input}')
 
     # Replace this with an appropriate call to the Serper module
@@ -344,7 +346,7 @@ def invoke_weather_search(ctx, input):
 
     return json.dumps(w_res_json['daily'])
 
-def create_transcription(ctx, mp3_file_path):
+def create_transcription(ctx:Context, mp3_file_path):
     t0 = time.time()
 
     transcript = openai.Audio.transcribe(

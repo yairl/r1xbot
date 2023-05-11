@@ -1,13 +1,11 @@
 #!/usr/bin/python3
 
 import os
-import logging
-import time
 
 import boto3
-from botocore.exceptions import ClientError
 
 from src.utils import logger, init_env_vars
+from src.infra.context import Context
 init_env_vars.config()
 
 from src.controllers.handle_incoming_messages import handle_incoming_message
@@ -15,33 +13,15 @@ from src.controllers.handle_incoming_messages import handle_incoming_message
 import threading
 import traceback
 
-class ThreadSafeCounter:
-    def __init__(self):
-        self._counter = 0
-        self._lock = threading.Lock()
-
-    def get_and_increment(self):
-        with self._lock:
-            val = self._counter
-            self._counter += 1
-            return val
-
-# Usage
-counter = ThreadSafeCounter()
-
 NUM_CONSUMERS = 10
 
 QUEUE_URL = os.environ["SQS_QUEUE_URL"]
 
 def process_message(message):
-    ctx = { 'msgCount' : counter.get_and_increment() }
-
-    log_ctx = logger.create_logging_context(ctx['msgCount'])
-    log_ctx.log("Starting to handle message")
-
+    ctx = Context()
     print(message)
-    result = handle_incoming_message(log_ctx, message['Body'])
-    log_ctx.log("Finished handling message")
+    result = handle_incoming_message(ctx, message['Body'])
+    ctx.log("Finished handling message")
 
 def single_sqs_handler(queue):
     while True:
@@ -62,7 +42,6 @@ def single_sqs_handler_core(queue):
     process_message(message)
 
     queue.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=message['ReceiptHandle'])
-
 
 def main():
     threads = []
