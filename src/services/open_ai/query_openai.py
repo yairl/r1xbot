@@ -127,6 +127,8 @@ def get_chat_completion_core(ctx, messenger_name, messages):
 def get_prep_message(ctx:Context, messenger):
     current_date = time.strftime("%B %d, %Y", time.gmtime())
 
+    is_debug_prompt = False
+
     gpt_ver = 'GPT-4' if getattr(ctx, 'user_channel', None) == 'canary' else 'GPT-3.5'
 
     prep_message_stable = {
@@ -153,18 +155,18 @@ You can invoke one of the following tools to augment your knowledge before reply
 SEARCH: performs a Google search and returns key results. Use this tool to provide up-to-date information about world events. Its data is more reliable than your existing knowledge. TOOL_INPUT=search prompt. IMPORTANT: do not invoke this tool again if it was already invoked, and you have the result of the previous invocation.
 WEATHER: per-location 3-day weather forecast, at day granularity. It does not provide a finer-grained forecast. TOOL_INPUT=<City, Country>, both in English. TOOL_INPUT should always be a well-defined settlement and country/state. IMPORTANT: If you believe the right value for TOOL_INPUT is unknown/my location/similar, do not ask for the tool to be invoked and instead use the ANSWER format to ask the user for location information.
 
-For invoking a tool, provide your reply in a JSON format, with the following fields: TOOL, TOOL_INPUT, REASON.
+For invoking a tool, provide your reply wrapped in <yair1xigoresponse>REPLY</yair1xigoresponse> tags, where REPLY is in JSON format with the following fields: TOOL, TOOL_INPUT.
 Examples:
 
-{{ "TOOL" : "SEARCH", "TOOL_INPUT" : "Who is the current UK PM?", "REASON" : "Human requested data about UK government." }}
-{{ "TOOL" : "WEATHER", "TOOL_INPUT" : "Tel Aviv, Israel", "REASON" : "Human is located in Tel Aviv, Israel and asked what to wear tomorrow." }}
+<yair1xigoresponse>{{ "TOOL" : "SEARCH", "TOOL_INPUT" : "Who is the current UK PM?" }}</yair1xigoresponse>
+<yair1xigoresponse>{{ "TOOL" : "WEATHER", "TOOL_INPUT" : "Tel Aviv, Israel" }}</yair1xigoresponse>
 
 Please use these exact formats, and do not deviate.
 
-Otherwise, provide your final reply in a JSON format, with the following fields: ANSWER.
+Otherwise, provide your final reply wrapped in <yair1xigoresponse>REPLY</yair1xigoresponse> tags in a JSON format, with the following fields: ANSWER.
 Example:
 
-{{ "ANSWER" : "Current UK PM is Rishi Sunak" }}
+<yair1xigoresponse>{{ "ANSWER" : "Current UK PM is Rishi Sunak" }}</yair1xigoresponse>
 
 Today's date is {current_date}.
 You are trained with knowledge until September 2021.
@@ -179,19 +181,10 @@ Don't provide your response until you made sure it is valid, and meets all prere
 
 WHEN PROVIDING A FINAL ANSWER TO THE USER, NEVER MENTION THE SEARCH AND WEATHER TOOLS DIRECTLY, AND DO NOT SUGGEST THAT THE USER UTILIZES THEM.
 
-Your tasks are as follows:
-
-1. Formulate the request from the human in their last message.
-2. Formulate the human's request as a self-contained question, including all relevant data from previous messages in the chat, as well as data from tool invocations.
-3. State which tool should be invoked can provide the most information, and with what input. List all prerequisites for the tool and show how each is met. IMPORTANT: it is not allowed to invoke a tool that already has data provided to in in the <r1xdata> section.
-4. Formulate the tool invocation request, or answer, in JSON format as detailed above. JSON should be delimited as <yair1xigoresponse>RESPONSE</yair1xigoresponse>. IMPORTANT: THE "RESPONSE" PART MUST BE DELIVERED IN A SINGLE LINE. DO NOT USE MULTILINE SYNTAX.
-
-Use the following format when providing your answer:
-
-Human's most recent message: <request>
-Self-contained request: <human's most recent request, including all relevant data from chat history>
-Tool invocation request: <information about which tool is most relevant, if any, including explanation how each prerequisite for the tool is met with detailed data. confirm that you have verified that this tool has not been invoked yet, as it is illegal to invoke again>
-Response: <yair1xigoresponse><tool request or answer in JSON format></yair1xigoresponse>
+Your thought process should follow the next steps {'audibly stating the CONCLUSION for each step number without quoting it:' if is_debug_prompt else 'silently:'}
+1. Understand the human's request and formulate it as a self-contained question.
+2. Decide which tool should be invoked can provide the most information, and with what input. Decide all prerequisites for the tool and show how each is met. IMPORTANT: it is not allowed to invoke a tool that already has data provided to in in the <r1xdata> section.
+3. Formulate the tool invocation request, or answer, in JSON format as detailed above. IMPORTANT: THIS PART MUST BE DELIVERED IN A SINGLE LINE. DO NOT USE MULTILINE SYNTAX.
 
 IMPORTANT: Make sure to focus on the most recent request from the user, even if it is a repeated one.""" }
 
@@ -213,22 +206,30 @@ def get_chat_completion_with_tools(ctx, messenger_name, messages, direct):
         system_message = get_system_message(ctx, messenger_name)
         history = get_limited_message_history(ctx, parsed_messages, system_message)
 
+        prompt_tokens_total = 0
+        completion_tokens_total = 0
+
         for i in range(2):
             ctx.log(f"Invoking completionIterativeStep #{i}")
             result = completion_iterative_step(ctx, messenger_name, deep_clone(history), prev_responses)
             answer = result['answer']
             tool = result['tool']
             input_ = result['input']
+            prompt_tokens = result['prompt_tokens']
+            completion_tokens = result['completion_tokens']
 
-            ctx.log(f"completionIterativeStep done, answer={answer} tool={tool} input={input_}")
+            ctx.log(f"completionIterativeStep done, answer={answer} tool={tool} input={input_} prompt_tokens={prompt_tokens} completion_tokens={completion_tokens}" )
+
+            prompt_tokens_total += prompt_tokens
+            completion_tokens_total += completion_tokens
 
             if answer:
                 ctx.log(f"Answer returned: {answer}")
 
                 return Box({
                     "response": answer,
-                    "promptTokens": 0,
-                    "completionTokens": 0
+                    "promptTokens": prompt_tokens_total,
+                    "completionTokens": completion_tokens_total
                 })
 
             if tool and input_:
@@ -245,7 +246,7 @@ def get_chat_completion_with_tools(ctx, messenger_name, messages, direct):
     return get_chat_completion(ctx, messenger_name, messages, direct)
 
 def completion_iterative_step(ctx, messenger_name, history, prev_responses):
-    result = {'answer': None, 'tool': None, 'input': None}
+    result = {'answer': None, 'tool': None, 'input': None, 'prompt_tokens': None, 'completion_tokens': None}
 
     messages = []
 
@@ -269,6 +270,8 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses):
     messages.append(new_request)
 
     reply = get_chat_completion_core(ctx, messenger_name, messages)
+    result['prompt_tokens'] = reply.promptTokens
+    result['completion_tokens'] = reply.completionTokens
 
     regex = re.compile(r'<yair1xigoresponse>(.*?)<\/yair1xigoresponse>', re.DOTALL)
     matches = regex.search(reply['response'])
