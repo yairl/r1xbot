@@ -47,9 +47,8 @@ def handle_incoming_message(ctx: Context, event):
         in_flight["working"] = False
 
 
-def handle_incoming_message_core(ctx, event, in_flight):
-    start = time.time()
 def handle_incoming_message_core(ctx:Context, event, in_flight):
+    start = time.time()
     parsed_event = json.loads(event)
     messenger = messengers.__all__[parsed_event["source"]]
 
