@@ -5,6 +5,8 @@ from src.services.messages import messages_service
 from box import Box
 import time
 
+from tools.context import Context
+
 class EventKindE:
     STATUS_UPDATE = 'status_update'
     MESSAGE = 'message'
@@ -102,7 +104,7 @@ def get_bot_generated_message(ctx, send_message_response, attributes):
 
     return message
 
-def send_message(ctx, attributes):
+def send_message(ctx:Context, attributes):
     chat_id = attributes.get('chat_id')
     quote_id = attributes.get('quote_id')
     kind = attributes.get('kind')
@@ -120,7 +122,7 @@ def send_message(ctx, attributes):
         messages_service.insert_message(ctx, parsed_message)
         ctx.log(f"Message inserted successfully: {parsed_message}")
 
-def send_message_raw(ctx, attributes):
+def send_message_raw(ctx:Context, attributes):
     chat_id = attributes.get('chat_id')
     quote_id = attributes.get('quote_id')
     kind = attributes.get('kind')
@@ -171,7 +173,7 @@ def is_message_for_me(msg):
 
     return False
 
-def get_voice_mp3_file(ctx, parsed_message, file_info):
+def get_voice_mp3_file(ctx:Context, parsed_message, file_info):
     ctx.log(f"getVoiceMp3File: {parsed_message}, {file_info}")
     url = get_download_url(ctx, file_info.fileId)
     ogg_file_path, mp3_file_path = get_audio_file_paths(ctx, parsed_message.chatId, file_info)
@@ -192,7 +194,7 @@ def get_voice_mp3_file(ctx, parsed_message, file_info):
         if delete_ogg_file:
             file_services.delete_file(ctx, ogg_file_path)
 
-def get_download_url(ctx, file_id):
+def get_download_url(ctx:Context, file_id):
     ctx.log(f"getDownloadUrl: {file_id}")
     headers = {
         "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
@@ -213,7 +215,7 @@ def get_download_url(ctx, file_id):
     ctx.log(f"getDownloadUrl: downloadUrl={download_url}")
     return download_url
 
-def get_audio_file_paths(ctx, chat_id, file_info):
+def get_audio_file_paths(ctx:Context, chat_id, file_info):
     temp_dir_path = file_services.make_temp_dir_name(f"r1x/wa/{chat_id}_")
     file_path_name = temp_dir_path + '/audio'
     ogg_file_path = file_path_name + '.ogg'
@@ -228,7 +230,7 @@ def set_typing(chat_id, in_flight):
     return
 
 
-def set_status_read(ctx, message_id):
+def set_status_read(ctx:Context, message_id):
     ctx.log("setStatusRead")
     headers = {
         "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",

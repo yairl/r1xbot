@@ -2,14 +2,16 @@ import os
 from pathlib import Path
 import tempfile
 
-def delete_file_unsafe(ctx, file_path):
+from tools.context import Context
+
+def delete_file_unsafe(ctx:Context, file_path):
     try:
         os.remove(file_path)
         ctx.log("deleteFile succeeded")
     except OSError as err:
         raise err
 
-def delete_file(ctx, file_path):
+def delete_file(ctx:Context, file_path):
     ctx.log(f"deleteFile filePath={file_path}")
     try:
         delete_file_unsafe(ctx, file_path)

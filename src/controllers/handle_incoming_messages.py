@@ -12,6 +12,8 @@ from posthog import Posthog
 import src.db.models.index as db_index
 from sqlalchemy import desc
 
+from tools.context import Context
+
 posthog_client = Posthog(
     os.environ['POSTHOG_API_KEY'],
     host='https://app.posthog.com'
@@ -33,7 +35,7 @@ def get_user_channel(parsed_message):
     return channel
 
 
-def handle_incoming_message(ctx, event):
+def handle_incoming_message(ctx: Context, event):
     in_flight = {"working": True}
 
     try:
@@ -47,6 +49,7 @@ def handle_incoming_message(ctx, event):
 
 def handle_incoming_message_core(ctx, event, in_flight):
     start = time.time()
+def handle_incoming_message_core(ctx:Context, event, in_flight):
     parsed_event = json.loads(event)
     messenger = messengers.__all__[parsed_event["source"]]
 
@@ -137,7 +140,7 @@ def handle_incoming_message_core(ctx, event, in_flight):
         }
     )
 
-def send_intro_message(ctx, messenger, parsed_message):
+def send_intro_message(ctx:Context, messenger, parsed_message):
     intro_message_legal = """Robot 1-X at your service!
 
 First, be aware that while I always do my best to help, I am not a professional doctor, psychologist, banker or otherwise.
@@ -173,7 +176,7 @@ How can I help?"""
         "body": intro_message_overview
     })
 
-def get_transcript(ctx, messenger, parsed_message, file_info):
+def get_transcript(ctx:Context, messenger, parsed_message, file_info):
     mp3_file_path = None
 
     try:

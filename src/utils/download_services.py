@@ -2,7 +2,9 @@ import os
 import requests
 from pathlib import Path
 
-def download_stream_file(ctx, url, path, headers=None):
+from tools.context import Context
+
+def download_stream_file(ctx:Context, url, path, headers=None):
     # Create the directory if it doesn't exist
     dir_path = Path(path).parent
     os.makedirs(dir_path, exist_ok=True)

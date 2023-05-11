@@ -8,6 +8,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from src.utils import logger, init_env_vars
+from tools.context import Context
 init_env_vars.config()
 
 from src.controllers.handle_incoming_messages import handle_incoming_message
@@ -34,14 +35,10 @@ NUM_CONSUMERS = 10
 QUEUE_URL = os.environ["SQS_QUEUE_URL"]
 
 def process_message(message):
-    ctx = { 'msgCount' : counter.get_and_increment() }
-
-    log_ctx = logger.create_logging_context(ctx['msgCount'])
-    log_ctx.log("Starting to handle message")
-
+    ctx = Context()
     print(message)
-    result = handle_incoming_message(log_ctx, message['Body'])
-    log_ctx.log("Finished handling message")
+    result = handle_incoming_message(ctx, message['Body'])
+    ctx.log("Finished handling message")
 
 def single_sqs_handler(queue):
     while True:
@@ -62,7 +59,6 @@ def single_sqs_handler_core(queue):
     process_message(message)
 
     queue.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=message['ReceiptHandle'])
-
 
 def main():
     threads = []
