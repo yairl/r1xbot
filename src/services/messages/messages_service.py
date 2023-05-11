@@ -3,7 +3,7 @@ from src.db.models import index as db_index
 from src.db.models.messages import Message
 import datetime
 
-from tools.context import Context
+from src.infra.context import Context
 
 def insert_message(ctx:Context, attributes):
     source = attributes['source']

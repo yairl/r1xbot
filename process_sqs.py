@@ -1,34 +1,17 @@
 #!/usr/bin/python3
 
 import os
-import logging
-import time
 
 import boto3
-from botocore.exceptions import ClientError
 
 from src.utils import logger, init_env_vars
-from tools.context import Context
+from src.infra.context import Context
 init_env_vars.config()
 
 from src.controllers.handle_incoming_messages import handle_incoming_message
 
 import threading
 import traceback
-
-class ThreadSafeCounter:
-    def __init__(self):
-        self._counter = 0
-        self._lock = threading.Lock()
-
-    def get_and_increment(self):
-        with self._lock:
-            val = self._counter
-            self._counter += 1
-            return val
-
-# Usage
-counter = ThreadSafeCounter()
 
 NUM_CONSUMERS = 10
 

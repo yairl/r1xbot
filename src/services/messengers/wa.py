@@ -5,8 +5,7 @@ from src.services.messages import messages_service
 from box import Box
 import time
 
-from tools.context import Context
-
+from src.infra.context import Context
 class EventKindE:
     STATUS_UPDATE = 'status_update'
     MESSAGE = 'message'

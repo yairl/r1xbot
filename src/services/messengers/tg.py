@@ -7,8 +7,7 @@ from box import Box
 
 import threading
 
-from tools.context import Context
-
+from src.infra.context import Context
 
 class MessageKindE:
     TEXT = 'text'

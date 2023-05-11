@@ -12,7 +12,7 @@ from posthog import Posthog
 import src.db.models.index as db_index
 from sqlalchemy import desc
 
-from tools.context import Context
+from src.infra.context import Context
 
 posthog_client = Posthog(
     os.environ['POSTHOG_API_KEY'],
