@@ -204,6 +204,9 @@ def get_chat_completion_with_tools(ctx, messenger_name, messages, direct):
         system_message = get_system_message(ctx, messenger_name)
         history = get_limited_message_history(ctx, parsed_messages, system_message)
 
+        prompt_tokens_total = 0
+        completion_tokens_total = 0
+
         for i in range(2):
             ctx.log(f"Invoking completionIterativeStep #{i}")
             result = completion_iterative_step(ctx, messenger_name, deep_clone(history), prev_responses)
@@ -215,13 +218,16 @@ def get_chat_completion_with_tools(ctx, messenger_name, messages, direct):
 
             ctx.log(f"completionIterativeStep done, answer={answer} tool={tool} input={input_} prompt_tokens={prompt_tokens} completion_tokens={completion_tokens}" )
 
+            prompt_tokens_total += prompt_tokens
+            completion_tokens_total += completion_tokens
+
             if answer:
                 ctx.log(f"Answer returned: {answer}")
 
                 return Box({
                     "response": answer,
-                    "promptTokens": prompt_tokens,
-                    "completionTokens": completion_tokens
+                    "promptTokens": prompt_tokens_total,
+                    "completionTokens": completion_tokens_total
                 })
 
             if tool and input_:
