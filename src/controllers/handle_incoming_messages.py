@@ -1,6 +1,7 @@
 import time
 import json
 import os
+from src.services.messengers import messenger_factory
 
 from src.services.open_ai.query_openai import get_chat_completion, get_chat_completion_with_tools, create_transcription
 from src.db.models.user_settings import UserSettings
@@ -50,7 +51,7 @@ def handle_incoming_message(ctx: Context, event):
 def handle_incoming_message_core(ctx:Context, event, in_flight):
     start = time.time()
     parsed_event = json.loads(event)
-    messenger = messengers.__all__[parsed_event["source"]]
+    messenger = messenger_factory.messenger_by_type[parsed_event["source"]]
 
     parse_message_result = messenger.parse_message(parsed_event["event"])
 
@@ -58,7 +59,7 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
         return
 
     parsed_message, file_info = parse_message_result
-
+    
     messenger.set_status_read(ctx, parsed_message.messageId)
 
     ctx.user_channel = get_user_channel(parsed_message)
