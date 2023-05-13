@@ -140,8 +140,8 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
             'completion_tokens': completion.completionTokens,
             'completion_tokens_per_sec': completion_tokens_per_sec,
             'total_tokens': completion.promptTokens + completion.completionTokens,
-            'response_time_ms': int((time.time() - parsed_message.messageTimestamp) * 1000),
-            'processing_time_ms': int((time.time() - start) * 1000),
+            'response_time_ms': response_time_ms,
+            'processing_time_ms': processing_time_ms,
         }
     )
 
