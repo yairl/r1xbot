@@ -1,5 +1,5 @@
 import threading
-from typing import Any
+from typing import Any, Dict 
 from src.utils import logger
 
 
@@ -18,7 +18,8 @@ class ThreadSafeCounter:
 counter = ThreadSafeCounter()
 
 class Context(object):
-    user_channel: Any
+    user_channel: str
+    user_settings: Dict[str, Any]
     
     def __init__(self):
         self.msg_count = counter.get_and_increment()
