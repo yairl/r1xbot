@@ -9,7 +9,6 @@ import src.services.messengers as messengers
 from src.utils import file_services
 
 from posthog import Posthog
-import src.db.models as db_models
 from sqlalchemy import desc
 
 from src.infra.context import Context
