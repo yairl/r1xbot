@@ -81,6 +81,8 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
             })
         
         PostHog.message_transcribed(ctx, parsed_message)
+        
+        PostHog.message_transcribed(ctx, parsed_message)
 
     message = insert_message(ctx, parsed_message)
 
