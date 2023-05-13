@@ -1,6 +1,5 @@
 from sqlalchemy import and_, desc
-from src.db.models import index as db_index
-from src.db.models.messages import Message
+from src import db_models
 import datetime
 
 from src.infra.context import Context
@@ -20,15 +19,15 @@ def insert_message(ctx:Context, attributes):
 
     ctx.log('insertMessage attributes:', attributes)
 
-    with db_index.Session() as session:
-        existing_message = session.query(Message).filter(and_(Message.chatId == chat_id, Message.messageId == message_id)).one_or_none()
+    with db_models.Session() as session:
+        existing_message = session.query(db_models.Message).filter(and_(db_models.Message.chatId == chat_id, db_models.Message.messageId == message_id)).one_or_none()
 
         if existing_message:
             return existing_message
 
         now = datetime.datetime.now()
 
-        message = Message(
+        message = db_models.Message(
             source=source,
             messageTimestamp=message_timestamp,
             chatType=chat_type,
@@ -60,10 +59,10 @@ def get_message_history(ctx:Context, message, options=None):
     chat_id = message.chatId
     message_timestamp = message.messageTimestamp
 
-    with db_index.Session() as session:
-        messages = session.query(Message) \
-                   .filter(and_(Message.chatId == chat_id, Message.messageTimestamp <= message_timestamp)) \
-                   .order_by(desc(Message.createdAt)).limit(limit).all()
+    with db_models.Session() as session:
+        messages = session.query(db_models.Message) \
+                   .filter(and_(db_models.Message.chatId == chat_id, db_models.Message.messageTimestamp <= message_timestamp)) \
+                   .order_by(desc(db_models.Message.createdAt)).limit(limit).all()
 
         session.close()
 
