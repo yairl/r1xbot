@@ -42,7 +42,7 @@ class SequelizeMeta(Base):
     name = Column(String(255), primary_key=True)
 
 
-class UserSetting(Base):
+class UserSettings(Base):
     __tablename__ = 'user_settings'
 
     id = Column(Integer, primary_key=True, server_default=text("nextval('user_settings_id_seq'::regclass)"))
