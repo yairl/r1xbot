@@ -1,6 +1,9 @@
 import time
 import json
 import os
+
+from typing import Any, Dict
+
 from src.services.messengers import messenger_factory
 
 from src.services.open_ai.query_openai import get_chat_completion, get_chat_completion_with_tools, create_transcription
@@ -19,7 +22,7 @@ posthog_client = Posthog(
     host='https://app.posthog.com'
 )
 
-def get_user_channel(parsed_message):
+def get_user_settings(parsed_message) -> Dict[str, Any]: 
     user_id = f"{parsed_message.source}:{parsed_message.chatId}"
     session = db_models.Session()
     settings = session.query(db_models.UserSettings) \
@@ -28,11 +31,9 @@ def get_user_channel(parsed_message):
                 .limit(1) \
                 .one_or_none()
 
-    channel = settings.settings['channel'] if settings else 'stable'
-
     session.close()
 
-    return channel
+    return getattr(settings, 'settings', {})
 
 
 def handle_incoming_message(ctx: Context, event):
@@ -61,7 +62,8 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
     
     messenger.set_status_read(ctx, parsed_message.messageId)
 
-    ctx.user_channel = get_user_channel(parsed_message)
+    ctx.user_settings = get_user_settings(parsed_message)
+    ctx.user_channel = getattr(ctx.user_settings, 'channel', 'stable')
 
     is_typing = False
 

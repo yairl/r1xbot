@@ -96,7 +96,7 @@ def get_chat_completion(ctx:Context, messenger_name, messages, direct):
     return get_chat_completion_core(ctx, messenger_name, messages_upto_max_tokens)
 
 def get_chat_completion_core(ctx, messenger_name, messages):
-    model = "gpt-4" if getattr(ctx, 'user_channel', None) == "canary" else "gpt-3.5-turbo"
+    model = "gpt-4" if ctx.user_channel == "canary" else "gpt-3.5-turbo"
 
     try:
         ctx.log("Messages: ", messages);
@@ -129,7 +129,7 @@ def get_prep_message(ctx:Context, messenger):
 
     is_debug_prompt = False
 
-    gpt_ver = 'GPT-4' if getattr(ctx, 'user_channel', None) == 'canary' else 'GPT-3.5'
+    gpt_ver = 'GPT-4' if ctx.user_channel == 'canary' else 'GPT-3.5'
 
     prep_message_stable = {
         "role" : "user",
@@ -347,11 +347,15 @@ def invoke_weather_search(ctx:Context, input):
     return json.dumps(w_res_json['daily'])
 
 def create_transcription(ctx:Context, mp3_file_path):
+    language = ctx.user_settings.get('transcription.lang', None)
+    ctx.log(f'createTranscription: preferred user language is {language}')
+
     t0 = time.time()
 
     transcript = openai.Audio.transcribe(
         file = open(mp3_file_path, "rb"),
-        model = os.environ['OPENAI_SPEECH_TO_TEXT_MODEL']
+        model = os.environ['OPENAI_SPEECH_TO_TEXT_MODEL'],
+        language = language
     )
 
     transcription = transcript['text']
