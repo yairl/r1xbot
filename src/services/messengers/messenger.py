@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Tuple
+from typing import List, Tuple
 
 from box import Box
-
 from src.infra.context import Context
 
 
@@ -12,6 +11,11 @@ class MessageKindE:
     AUDIO = 'audio'
 
 class MessagingService(ABC):
+    def multi_send(self, ctx:Context, chat_ids: List[str], attributes ):
+        for chat_id in chat_ids:
+            attributes['chat_id'] = chat_id
+            self.send_message_raw(ctx, attributes)
+    
     @abstractmethod
     def parse_message(self, message) -> Tuple[Box, Box]:
         pass

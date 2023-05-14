@@ -103,15 +103,11 @@ class WhatsappMessenger(MessagingService):
 
     def send_message(self, ctx:Context, attributes):
         chat_id = attributes.get('chat_id')
-        quote_id = attributes.get('quote_id')
-        kind = attributes.get('kind')
-        body = attributes.get('body')
-
         response = self.send_message_raw(ctx, attributes)
 
         if response:
             message = self._get_bot_generated_message(ctx, response, attributes)
-            parsed_message, file_info = self.parse_message(message)
+            parsed_message, _ = self.parse_message(message)
 
             parsed_message.chatId = chat_id
             ctx.log(parsed_message)
