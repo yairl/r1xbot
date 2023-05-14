@@ -63,8 +63,8 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
     messenger.set_status_read(ctx, parsed_message.messageId)
 
     ctx.user_settings = get_user_settings(parsed_message)
-    ctx.user_channel = getattr(ctx.user_settings, 'channel', 'stable')
-
+    ctx.user_channel = ctx.user_settings.get('channel', 'stable')
+ 
     is_typing = False
 
     if parsed_message.kind == "voice":
