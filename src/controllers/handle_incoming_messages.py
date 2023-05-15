@@ -42,7 +42,7 @@ def handle_incoming_message(ctx: Context, event):
     try:
         handle_incoming_message_core(ctx, event, in_flight)
     except Exception as error:
-        ctx.log("Message processing failed: ", error.stack, error)
+        ctx.log("Message processing failed: ",error)
         raise Exception("Message processing failed.")
     finally:
         in_flight["working"] = False
@@ -146,6 +146,7 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
             'processing_time_ms': processing_time_ms,
         }
     )
+    
 
 def send_intro_message(ctx:Context, messenger, parsed_message):
     intro_message_legal = """Robot 1-X at your service!
