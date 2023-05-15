@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 
+import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy import Boolean, Column, DateTime, Index, Integer, JSON, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -63,8 +64,8 @@ class Event(Base):
     created_at = Column(DateTime(timezone=True), server_default=text('NOW()'), nullable=False)
 
     __table_args__ = (
-        sa.Index('ix_events_type', 'type'),
-        sa.Index('ix_events_ref', 'ref_table', 'ref_id'),
+        sqlalchemy.Index('ix_events_type', 'type'),
+        sqlalchemy.Index('ix_events_ref', 'ref_table', 'ref_id'),
     )
 
 ### End of table definitions ###
