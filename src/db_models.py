@@ -52,6 +52,21 @@ class UserSettings(Base):
     createdAt = Column(DateTime(True), nullable=False, index=True)
     updatedAt = Column(DateTime(True), nullable=False)
 
+class Event(Base):
+    __tablename__ = 'events'
+
+    id = Column(Integer, primary_key=True)
+    type = Column(String)
+    ref_table = Column(String)
+    ref_id = Column(Integer)
+    body = Column(JSONB)
+    created_at = Column(DateTime(timezone=True), server_default=text('NOW()'), nullable=False)
+
+    __table_args__ = (
+        sa.Index('ix_events_type', 'type'),
+        sa.Index('ix_events_ref', 'ref_table', 'ref_id'),
+    )
+
 ### End of table definitions ###
 
 # Set up the database connection
