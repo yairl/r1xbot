@@ -15,7 +15,7 @@ from posthog import Posthog
 from sqlalchemy import desc
 
 from src.infra.context import Context
-from src.utils.posthog_wrapper import PostHog
+from src.utils.event_logger import EventLogger
 
 def get_user_settings(parsed_message) -> Dict[str, Any]: 
     user_id = f"{parsed_message.source}:{parsed_message.chatId}"
@@ -80,10 +80,8 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
                 "quote_id": parsed_message.messageId
             })
         
-        PostHog.message_transcribed(ctx, parsed_message)
+        EventLogger.message_transcribed(ctx, parsed_message)
         
-        PostHog.message_transcribed(ctx, parsed_message)
-
     message = insert_message(ctx, parsed_message)
 
     if message.isSentByMe or message.body is None:
@@ -117,7 +115,7 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
         'body': completion.response
     })
 
-    PostHog.reply_sent(ctx, parsed_message, completion, start)
+    EventLogger.reply_sent(ctx, parsed_message, completion, start)
 
 def send_intro_message(ctx:Context, messenger, parsed_message):
     intro_message_legal = """Robot 1-X at your service!

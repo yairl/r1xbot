@@ -5,16 +5,16 @@ from posthog import Posthog
 
 from src.infra.context import Context
 
-class PostHog(object):
+class EventLogger(object):
     posthog_client = Posthog(
         os.environ['POSTHOG_API_KEY'],
         host='https://app.posthog.com'
     )
     
     @classmethod
-    def message_transcribed(cls,ctx, parsed_message) -> None:
+    def message_transcribed(cls,ctx:Context, parsed_message) -> None:
         cls.posthog_client.capture(
-            distinct_id = f"{parsed_message.source}:{parsed_message.chatId}",
+            distinct_id = ctx.distinct_user_id,
             event = "message-transcribed",
             properties = {
                 'sender_id': parsed_message.senderId,
@@ -43,20 +43,9 @@ class PostHog(object):
             properties = properties
         )
         
-    @classmethod
-    def open_ai_api_call(cls, ctx:Context, action:str, model:str, runtime:int):
-        cls.posthog_client.capture(
-            distinct_id= ctx.distinct_user_id,
-            event='open_ai_api_call',
-            properties= {
-                'action': action,
-                'model': model,
-                'api_runtime_ms': runtime,
-            }
-        )
-
+        
 @contextmanager
-def capture_open_ai_api_call(ctx:Context, action:str, model:str):
+def capture_call(ctx:Context, action:str):
     start = time.time()
     yield
     ctx.posthog_stats.update({action:int((time.time() - start)*1000)})

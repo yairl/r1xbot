@@ -12,7 +12,7 @@ from box import Box
 from src.services.token_prediction import token_predictor
 from src.infra.context import Context
 from langchain.utilities import google_serper
-from src.utils.posthog_wrapper import capture_open_ai_api_call
+from utils import event_logger
 
 openai.api_key = os.environ['OPENAI_API_KEY']
 
@@ -96,12 +96,12 @@ def get_chat_completion(ctx:Context, messenger_name, messages, direct):
     return get_chat_completion_core(ctx, messenger_name, messages_upto_max_tokens)
 
 def get_chat_completion_core(ctx, messenger_name, messages):
-    model = "gpt-4" if getattr(ctx, 'user_channel', None) == "canary" else "gpt-3.5-turbo"
+    model = "gpt-4" if ctx.user_channel == "canary" else "gpt-3.5-turbo"
 
     try:
         ctx.log("Messages: ", messages);
         ctx.log("invoking completion request.")
-        with capture_open_ai_api_call(ctx, 'chat_completion', model):
+        with event_logger.capture_call(ctx, 'chat_completion', model):
             completion = openai.ChatCompletion().create(
                 model=model,
                 messages=messages,
@@ -347,22 +347,19 @@ def invoke_weather_search(ctx:Context, input):
 
     return json.dumps(w_res_json['daily'])
 
+
 def create_transcription(ctx:Context, mp3_file_path):
+    language = ctx.user_settings.get('transcription.lang', None)
+    ctx.log(f'createTranscription: preferred user language is {language}')
+
     t0 = time.time()
-    model = os.environ['OPENAI_SPEECH_TO_TEXT_MODEL']
-    with capture_open_ai_api_call(ctx, 'audio_transcribe', model):
+    model = os.environ['OPENAI_SPEECH_TO_TEXT_MODEL'],
+    with event_logger.capture_call(ctx, 'audio_transcribe', model):
         transcript = openai.Audio.transcribe(
             file = open(mp3_file_path, "rb"),
-            model = model
+            model = model,
+            language = language
         )
-    
-    model = os.environ['OPENAI_SPEECH_TO_TEXT_MODEL']
-    with capture_open_ai_api_call(ctx, 'audio_transcribe', model):
-        transcript = openai.Audio.transcribe(
-        file = open(mp3_file_path, "rb"),
-        model = os.environ['OPENAI_SPEECH_TO_TEXT_MODEL'],
-        language = language
-    )
 
     transcription = transcript['text']
     time_taken = int((time.time() - t0) * 1000)
@@ -370,4 +367,3 @@ def create_transcription(ctx:Context, mp3_file_path):
     ctx.log(f'createTranscription: timeTaken={time_taken}ms transcription={transcription}')
 
     return transcription
-
