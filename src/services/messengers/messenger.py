@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import Tuple
 
 from box import Box
+
 from src.infra.context import Context
 
 
@@ -11,7 +12,6 @@ class MessageKindE:
     AUDIO = 'audio'
 
 class MessagingService(ABC):
-    
     @abstractmethod
     def parse_message(self, message) -> Tuple[Box, Box]:
         pass
