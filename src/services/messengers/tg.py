@@ -12,7 +12,7 @@ import threading
 
 from src.infra.context import Context
 
-
+tg_bot_path = 'https://t.me/Robot1XBot'
 class TelegramMessenger(MessagingService):
     
     def _get_message_kind(self, message) -> Optional[str]:
@@ -72,11 +72,13 @@ class TelegramMessenger(MessagingService):
             messages_service.insert_message(ctx, parsed_message)
             ctx.log(f'Message inserted successfully: {parsed_message}')
 
-    def send_message_raw(self, ctx:Context, attributes):
+    def send_message_raw(self, ctx:Context, attributes, bot=False):
         chat_id = attributes.get('chat_id')
         quote_id = attributes.get('quote_id')
         kind = attributes.get('kind')
         body = attributes.get('body')
+        if bot:
+            body += f' {tg_bot_path}'
 
         if kind != "text":
             return
@@ -105,20 +107,7 @@ class TelegramMessenger(MessagingService):
 
         return False
     
-    def send_bot_contact(self, ctx: Context, attributes):
-        chat_id = attributes.get('chat_id')
-        args = {'chat_id': chat_id, 'phone_number': '16692001022',  # The phone number of the contact
-            'first_name': 'R1X',  # The first name of the contact
-            'last_name': 'Bot',  # The last name of the contact (optional)
-        }
-
-        response = requests.post(
-            f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendContact',
-            json=args
-        ).json()
-
-        return response
-
+    
     def get_voice_mp3_file(self, ctx:Context, parsed_message, file_info) -> str:
         url = self._get_download_url(ctx, file_info.fileId)
         ogg_file_path, mp3_file_path = self._get_audio_file_paths(ctx, parsed_message.chatId, file_info)

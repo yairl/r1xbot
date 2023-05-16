@@ -16,11 +16,8 @@ def multi_send(ctx:Context, full_chat_ids: List[str], attributes: Dict[str,str],
         messenger_str, chat_id = full_chat_id.split(':')
         messenger = messenger_by_type[messenger_str]
         attributes['chat_id'] = chat_id
-        response = messenger.send_message_raw(ctx, attributes)
+        response = messenger.send_message_raw(ctx, attributes, bot)
         print(response)
-        if bot:
-            response = messenger.send_bot_contact(ctx, attributes)
-            print(response)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Send a message to multiple chat ids.')

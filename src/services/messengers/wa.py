@@ -115,7 +115,7 @@ class WhatsappMessenger(MessagingService):
             messages_service.insert_message(ctx, parsed_message)
             ctx.log(f"Message inserted successfully: {parsed_message}")
 
-    def send_message_raw(self, ctx:Context, attributes):
+    def send_message_raw(self, ctx:Context, attributes, bot:bool=False):
         chat_id = attributes.get('chat_id')
         quote_id = attributes.get('quote_id')
         kind = attributes.get('kind')
@@ -157,10 +157,11 @@ class WhatsappMessenger(MessagingService):
         except requests.exceptions.RequestException as error:
             ctx.log(f"sendMessageRaw: exception. error={error}")
             raise error
-
+        if bot:
+            self._send_bot_contact(ctx,attributes)
         return response.json()
     
-    def send_bot_contact(self, ctx: Context, attributes):
+    def _send_bot_contact(self, ctx: Context, attributes):
         chat_id = attributes.get('chat_id')
         headers = {
             "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
