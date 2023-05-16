@@ -104,6 +104,20 @@ class TelegramMessenger(MessagingService):
             return True
 
         return False
+    
+    def send_bot_contact(self, ctx: Context, attributes):
+        chat_id = attributes.get('chat_id')
+        args = {'chat_id': chat_id, 'phone_number': '16692001022',  # The phone number of the contact
+            'first_name': 'R1X',  # The first name of the contact
+            'last_name': 'Bot',  # The last name of the contact (optional)
+        }
+
+        response = requests.post(
+            f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendContact',
+            json=args
+        ).json()
+
+        return response
 
     def get_voice_mp3_file(self, ctx:Context, parsed_message, file_info) -> str:
         url = self._get_download_url(ctx, file_info.fileId)

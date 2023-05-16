@@ -159,6 +159,50 @@ class WhatsappMessenger(MessagingService):
             raise error
 
         return response.json()
+    
+    def send_bot_contact(self, ctx: Context, attributes):
+        chat_id = attributes.get('chat_id')
+        headers = {
+            "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
+            "Content-Type": "application/json"
+        }
+        contact_args = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": chat_id,
+            "type": "contacts",
+            "contacts": [
+                {
+                    "addresses": [],
+                    "emails": [],
+                    "name": {
+                        "first_name": "R1X",
+                        "formatted_name": "R1X-BOT",
+                        "last_name": "BOT"
+                    },
+                    "org": {},
+                    "phones": [
+                        {
+                            "phone": "+1 (669) 200-1022",
+                            "type": "HOME",
+                            "wa_id": "16692001022"
+                        }
+                    ],
+                    "urls": []
+                }
+            ]
+        }
+        try:
+            response = requests.post(
+                f"https://graph.facebook.com/{os.environ['FACEBOOK_GRAPH_VERSION']}/{os.environ['WHATSAPP_PHONE_NUMBER_ID']}/messages",
+                json=contact_args,
+                headers=headers
+            )
+            response.raise_for_status()  
+        except requests.exceptions.RequestException as error:
+            ctx.log(f"sendMessageRaw: exception. error={error}")
+            raise error
+        return response.json()     
 
     def is_message_for_me(self, msg) -> bool:
         if msg.chatType == "private":
