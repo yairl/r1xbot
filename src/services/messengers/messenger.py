@@ -21,7 +21,12 @@ class MessagingService(ABC):
         pass
 
     @abstractmethod
-    def send_message_raw(self, ctx:Context, attributes, bot:bool=False):
+    def send_message_raw(self, ctx:Context, attributes):
+        pass
+    
+    
+    @abstractmethod
+    def send_bot_contact(self, ctx:Context, attributes):
         pass
     
     @abstractmethod

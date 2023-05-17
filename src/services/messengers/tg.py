@@ -10,9 +10,8 @@ from box import Box
 
 import threading
 
-from src.infra.context import Context
 
-tg_bot_path = 'https://t.me/Robot1XBot'
+tg_bot_path = f"https://t.me/{os.environ['TELEGRAM_BOT_NAME']}"
 class TelegramMessenger(MessagingService):
     
     def _get_message_kind(self, message) -> Optional[str]:
@@ -71,14 +70,29 @@ class TelegramMessenger(MessagingService):
 
             messages_service.insert_message(ctx, parsed_message)
             ctx.log(f'Message inserted successfully: {parsed_message}')
+    
+    def send_bot_contact(self, ctx: Context, attributes):
+        chat_id = attributes.get('chat_id')
+        kind = attributes.get('kind')
+        body = tg_bot_path
+        if kind != "text":
+            return
 
-    def send_message_raw(self, ctx:Context, attributes, bot=False):
+        args = {'chat_id': chat_id, 'text': body}
+        response = requests.post(
+            f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendMessage',
+            json=args
+        ).json()
+
+        return response
+
+
+    def send_message_raw(self, ctx:Context, attributes):
         chat_id = attributes.get('chat_id')
         quote_id = attributes.get('quote_id')
         kind = attributes.get('kind')
         body = attributes.get('body')
-        if bot:
-            body += f' {tg_bot_path}'
+
 
         if kind != "text":
             return

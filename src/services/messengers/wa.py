@@ -1,4 +1,5 @@
 import os
+from typing import Dict
 import requests
 from src.services.messengers.messenger import MessageKindE, MessagingService
 from src.utils import download_services, media_converters, file_services
@@ -115,7 +116,7 @@ class WhatsappMessenger(MessagingService):
             messages_service.insert_message(ctx, parsed_message)
             ctx.log(f"Message inserted successfully: {parsed_message}")
 
-    def send_message_raw(self, ctx:Context, attributes, bot:bool=False):
+    def send_message_raw(self, ctx:Context, attributes):
         chat_id = attributes.get('chat_id')
         quote_id = attributes.get('quote_id')
         kind = attributes.get('kind')
@@ -147,6 +148,11 @@ class WhatsappMessenger(MessagingService):
         if quote_id:
             args["context"] = {"message_id": quote_id}
 
+        response = self._post_message_request(ctx, headers, args)
+
+        return response.json()
+
+    def _post_message_request(self, ctx:Context, headers:Dict[str,str], args):
         try:
             response = requests.post(
                 f"https://graph.facebook.com/{os.environ['FACEBOOK_GRAPH_VERSION']}/{os.environ['WHATSAPP_PHONE_NUMBER_ID']}/messages",
@@ -155,13 +161,11 @@ class WhatsappMessenger(MessagingService):
             )
             response.raise_for_status()
         except requests.exceptions.RequestException as error:
-            ctx.log(f"sendMessageRaw: exception. error={error}")
+            ctx.log(f"post_message_request: exception. error={error}")
             raise error
-        if bot:
-            self._send_bot_contact(ctx,attributes)
-        return response.json()
+        return response
     
-    def _send_bot_contact(self, ctx: Context, attributes):
+    def send_bot_contact(self, ctx: Context, attributes):
         chat_id = attributes.get('chat_id')
         headers = {
             "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
@@ -177,32 +181,23 @@ class WhatsappMessenger(MessagingService):
                     "addresses": [],
                     "emails": [],
                     "name": {
-                        "first_name": "R1X",
+                        "first_name": "R1X-BOT",
                         "formatted_name": "R1X-BOT",
-                        "last_name": "BOT"
+                        "last_name": ""
                     },
                     "org": {},
                     "phones": [
                         {
-                            "phone": "+1 (669) 200-1022",
+                            "phone": f"+{os.environ['WHATSAPP_PHONE_NUMBER']}",
                             "type": "HOME",
-                            "wa_id": "16692001022"
+                            "wa_id": os.environ['WHATSAPP_PHONE_NUMBER']
                         }
                     ],
                     "urls": []
                 }
             ]
         }
-        try:
-            response = requests.post(
-                f"https://graph.facebook.com/{os.environ['FACEBOOK_GRAPH_VERSION']}/{os.environ['WHATSAPP_PHONE_NUMBER_ID']}/messages",
-                json=contact_args,
-                headers=headers
-            )
-            response.raise_for_status()  
-        except requests.exceptions.RequestException as error:
-            ctx.log(f"sendMessageRaw: exception. error={error}")
-            raise error
+        response = self._post_message_request(ctx,headers,contact_args)
         return response.json()     
 
     def is_message_for_me(self, msg) -> bool:
