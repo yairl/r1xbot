@@ -1,3 +1,4 @@
+import backoff
 import json
 import os
 import openai
@@ -94,6 +95,7 @@ def get_chat_completion(ctx:Context, messenger_name, messages, direct):
 
     return get_chat_completion_core(ctx, messenger_name, messages_upto_max_tokens)
 
+@backoff.on_exception(backoff.expo, openai.error.RateLimitError, max_tries=3)
 def get_chat_completion_core(ctx, messenger_name, messages):
     model = "gpt-4" if ctx.user_channel == "canary" else "gpt-3.5-turbo"
 
@@ -120,7 +122,7 @@ def get_chat_completion_core(ctx, messenger_name, messages):
             ctx.log("error: e={e}", e)
 
         ctx.log("error generating completion from OpenAI.")
-        raise Exception("error generating completion from OpenAI.")
+        raise e
 
 
 def get_prep_message(ctx : Context, messenger, is_final : bool) -> str:
