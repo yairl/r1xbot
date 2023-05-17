@@ -11,19 +11,23 @@ init_env_vars.config()
 from src.infra.context import Context
 from src.services.messengers.messenger_factory import messenger_by_type
 
-def multi_send(ctx:Context, full_chat_ids: List[str], attributes: Dict[str,str] ):
+def multi_send(ctx:Context, full_chat_ids: List[str], attributes: Dict[str,str], bot ):
     for full_chat_id in full_chat_ids:
         messenger_str, chat_id = full_chat_id.split(':')
         messenger = messenger_by_type[messenger_str]
         attributes['chat_id'] = chat_id
         response = messenger.send_message_raw(ctx, attributes)
         print(response)
+        if bot:
+            response = messenger.send_bot_contact(ctx, chat_id)
+            print(response)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Send a message to multiple chat ids.')
     
     parser.add_argument('--message', required=True, help='The message')
     parser.add_argument('--chat_ids', required=True, help='a comma seperated list of <messenger wa/tg>:<chat ids> e.g wa:12346578,tg:456789654 ')
+    parser.add_argument('--bot', required=False, action='store_true', help='add the bot contact after the message')
     args = parser.parse_args()
     
     msg = args.message
@@ -33,6 +37,6 @@ if __name__ == '__main__':
     multi_send(ctx, full_chat_ids, {
                 "kind": "text",
                 "body": msg,
-            })
+            }, args.bot)
     
     

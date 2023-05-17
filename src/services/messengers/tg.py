@@ -10,9 +10,8 @@ from box import Box
 
 import threading
 
-from src.infra.context import Context
 
-
+tg_bot_path = f"https://t.me/{os.environ['TELEGRAM_BOT_NAME']}"
 class TelegramMessenger(MessagingService):
     
     def _get_message_kind(self, message) -> Optional[str]:
@@ -71,12 +70,23 @@ class TelegramMessenger(MessagingService):
 
             messages_service.insert_message(ctx, parsed_message)
             ctx.log(f'Message inserted successfully: {parsed_message}')
+    
+    def send_bot_contact(self, ctx: Context, chat_id:str):
+        args = {'chat_id': chat_id, 'text': tg_bot_path}
+        response = requests.post(
+            f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendMessage',
+            json=args
+        ).json()
+
+        return response
+
 
     def send_message_raw(self, ctx:Context, attributes):
         chat_id = attributes.get('chat_id')
         quote_id = attributes.get('quote_id')
         kind = attributes.get('kind')
         body = attributes.get('body')
+
 
         if kind != "text":
             return
@@ -104,7 +114,8 @@ class TelegramMessenger(MessagingService):
             return True
 
         return False
-
+    
+    
     def get_voice_mp3_file(self, ctx:Context, parsed_message, file_info) -> str:
         url = self._get_download_url(ctx, file_info.fileId)
         ogg_file_path, mp3_file_path = self._get_audio_file_paths(ctx, parsed_message.chatId, file_info)
