@@ -165,8 +165,7 @@ class WhatsappMessenger(MessagingService):
             raise error
         return response
     
-    def send_bot_contact(self, ctx: Context, attributes):
-        chat_id = attributes.get('chat_id')
+    def send_bot_contact(self, ctx: Context, chat_id:str):
         headers = {
             "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
             "Content-Type": "application/json"

@@ -19,7 +19,7 @@ def multi_send(ctx:Context, full_chat_ids: List[str], attributes: Dict[str,str],
         response = messenger.send_message_raw(ctx, attributes)
         print(response)
         if bot:
-            response = messenger.send_bot_contact(ctx, attributes)
+            response = messenger.send_bot_contact(ctx, chat_id)
             print(response)
 
 if __name__ == '__main__':

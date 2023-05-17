@@ -71,14 +71,8 @@ class TelegramMessenger(MessagingService):
             messages_service.insert_message(ctx, parsed_message)
             ctx.log(f'Message inserted successfully: {parsed_message}')
     
-    def send_bot_contact(self, ctx: Context, attributes):
-        chat_id = attributes.get('chat_id')
-        kind = attributes.get('kind')
-        body = tg_bot_path
-        if kind != "text":
-            return
-
-        args = {'chat_id': chat_id, 'text': body}
+    def send_bot_contact(self, ctx: Context, chat_id:str):
+        args = {'chat_id': chat_id, 'text': tg_bot_path}
         response = requests.post(
             f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendMessage',
             json=args
