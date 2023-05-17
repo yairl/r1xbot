@@ -180,8 +180,8 @@ class WhatsappMessenger(MessagingService):
                     "addresses": [],
                     "emails": [],
                     "name": {
-                        "first_name": "R1X-BOT",
-                        "formatted_name": "R1X-BOT",
+                        "first_name": "Robot 1-X",
+                        "formatted_name": "Robot 1-X",
                         "last_name": ""
                     },
                     "org": {},
