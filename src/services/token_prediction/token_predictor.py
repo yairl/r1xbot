@@ -47,12 +47,13 @@ def get_message_index_upto_max_tokens(system_message, chat_messages, soft_token_
     include_system_message = False
     start_index = len(chat_messages)
 
-    num_tokens += get_message_tokens(system_message)
+    if system_message != None:
+        num_tokens += get_message_tokens(system_message)
 
     if num_tokens > hard_token_limit:
         return [include_system_message, start_index]
 
-    include_system_message = True
+    include_system_message = (system_message != None)
 
     num_messages = 0
 
@@ -84,7 +85,7 @@ def get_messages_upto_max_tokens(ctx, system_message, chat_messages, soft_token_
 
     result = [system_message] if include_system_message else []
 
-    if not include_system_message or start_index == len(chat_messages):
+    if start_index == len(chat_messages):
         return result
 
     result += chat_messages[start_index:]
