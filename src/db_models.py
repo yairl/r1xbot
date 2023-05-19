@@ -68,6 +68,16 @@ class Event(Base):
         sqlalchemy.Index('ix_events_ref', 'ref_table', 'ref_id'),
     )
 
+class Timer(Base):
+    __tablename__ = 'timers'
+
+    id = Column(Integer, primary_key=True)
+    chat_id = Column(String, index=True)
+    trigger_timestamp = Column(DateTime, index=True)
+    data = Column(JSONB)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+
 ### End of table definitions ###
 
 # Set up the database connection
