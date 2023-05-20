@@ -1,21 +1,21 @@
 import time
 import json
 import os
-
-from typing import Any, Dict
-
-from src.services.messengers import messenger_factory
-
-from src.services.open_ai.query_openai import get_chat_completion, get_chat_completion_with_tools, create_transcription
-from src import db_models
-from src.services.messages.messages_service import insert_message, get_message_history
-import src.services.messengers as messengers
-from src.utils import file_services
+import pathlib
+import tempfile
 
 from posthog import Posthog
 from sqlalchemy import desc
 
-from src.infra.context import Context
+from typing import Any, Dict
+
+from services.messengers import messenger_factory
+
+from services.open_ai.query_openai import get_chat_completion, get_chat_completion_with_tools, create_transcription
+import db_models
+from services.messages.messages_service import insert_message, get_message_history
+import services.messengers as messengers
+from infra.context import Context
 
 posthog_client = Posthog(
     os.environ['POSTHOG_API_KEY'],
@@ -73,17 +73,14 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
 
         parsed_message.body = get_transcript(ctx, messenger, parsed_message, file_info)
 
-        quote_transcription, unused_reply_to_voice_message = get_voice_message_actions(messenger.is_message_for_me(parsed_message))
+        prefix_text = "\N{SPEAKING HEAD IN SILHOUETTE}\N{MEMO}: "
 
-        if quote_transcription:
-            prefix_text = "\N{SPEAKING HEAD IN SILHOUETTE}\N{MEMO}: "
-
-            messenger.send_message_raw(ctx, {
-                "chat_id": parsed_message.chatId,
-                "kind": "text",
-                "body": prefix_text + parsed_message.body,
-                "quote_id": parsed_message.messageId
-            })
+        messenger.send_message_raw(ctx, {
+            "chat_id": parsed_message.chatId,
+            "kind": "text",
+            "body": prefix_text + parsed_message.body,
+            "quote_id": parsed_message.messageId
+        })
 
         posthog_client.capture(
             distinct_id = f"{parsed_message.source}:{parsed_message.chatId}",
@@ -161,14 +158,14 @@ If you're under 18, you must have your parents' permission before you continue t
 Chatting with me means you agree to my Terms of Use (https://r1x.ai/terms-of-use) and Privacy policy (https://r1x.ai/privacy).
 Make sure to read them before continuing this chat."""
 
-    intro_message_overview = """Phew, now that that's out of the way, here are some things you can ask me for:
+    intro_message_overview = """Here are some things you can ask me for:
 
 - Write a bedtime story about Abigail and Jonathan, two superheroes who live next to a river.
 - Plan a 14-day road trip from Milan to Minsk. Include detailed suggestions about where to spend each day.
 - Rewrite the following text with spell-checking and punctuation: pleez send me all the docooments that is need for tomorrow flight im waiting for dem.
 - Please summarize the following text: <copy some text/email here>.
 
-And, you can send me an audio message instead of typing!
+And, you can record a message instead of typing!
 
 How can I help?"""
 
@@ -187,15 +184,11 @@ How can I help?"""
 def get_transcript(ctx:Context, messenger, parsed_message, file_info):
     mp3_file_path = None
 
-    try:
-        mp3_file_path = messenger.get_voice_mp3_file(ctx, parsed_message, file_info)
-        transcription = create_transcription(ctx, mp3_file_path)
-        return transcription
-    finally:
-        if mp3_file_path:
-            file_services.delete_file(ctx, mp3_file_path)
+    audio_root = pathlib.Path(tempfile.gettempdir()) / 'r1x' / 'audio'
+    audio_root.mkdir(exist_ok=True)
 
-def get_voice_message_actions(is_message_to_me):
-    quote_transcription = True
-    unused_reply_to_voice_message = None
-    return [quote_transcription, unused_reply_to_voice_message]
+    with tempfile.TemporaryDirectory(dir=audio_root, ignore_cleanup_errors=True) as workdir:
+        mp3_file_path = messenger.get_voice_mp3_file(ctx, parsed_message, file_info, pathlib.Path(workdir))
+        transcription = create_transcription(ctx, mp3_file_path)
+
+        return transcription

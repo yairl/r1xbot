@@ -1,8 +1,8 @@
 from sqlalchemy import and_, desc
-from src import db_models
+import db_models
 import datetime
 
-from src.infra.context import Context
+from infra.context import Context
 
 def insert_message(ctx:Context, attributes):
     source = attributes['source']
