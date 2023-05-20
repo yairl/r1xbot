@@ -6,6 +6,7 @@ import time
 import re
 import requests
 import traceback
+from typing import Dict
 
 from box import Box
 
