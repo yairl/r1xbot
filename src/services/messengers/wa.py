@@ -1,13 +1,14 @@
 import os
 from typing import Dict
 import requests
-from src.services.messengers.messenger import MessageKindE, MessagingService
-from src.utils import download_services, media_converters, file_services
-from src.services.messages import messages_service
+from services.messengers.messenger import MessageKindE, MessagingService
+from utils import download_services, media_converters
+from services.messages import messages_service
 from box import Box
 import time
 
-from src.infra.context import Context
+from infra.context import Context
+
 class EventKindE:
     STATUS_UPDATE = 'status_update'
     MESSAGE = 'message'
@@ -205,26 +206,19 @@ class WhatsappMessenger(MessagingService):
 
         return False
 
-    def get_voice_mp3_file(self, ctx:Context, parsed_message, file_info) -> str:
-        ctx.log(f"getVoiceMp3File: {parsed_message}, {file_info}")
+    def get_voice_mp3_file(self, ctx:Context, parsed_message, file_info, work_dir) -> str:
+        ctx.log(f"getVoiceMp3File: {parsed_message}, {file_info}, {work_dir}")
         url = self._get_download_url(ctx, file_info.fileId)
-        ogg_file_path, mp3_file_path = self._get_audio_file_paths(ctx, parsed_message.chatId, file_info)
-        is_download_successful = False
+        ogg_file_path, mp3_file_path = self._get_audio_file_paths(ctx, parsed_message.chatId, file_info, work_dir)
 
-        try:
-            headers = {
-                "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
-            }
+        headers = {
+            "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
+        }
 
-            is_download_successful = download_services.download_stream_file(ctx, url, ogg_file_path, headers)
-            media_converters.convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path)
+        download_services.download_stream_file(ctx, url, ogg_file_path, headers)
+        media_converters.convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path)
 
-            return mp3_file_path
-
-        finally:
-            delete_ogg_file = is_download_successful or file_services.file_exists(ogg_file_path)
-            if delete_ogg_file:
-                file_services.delete_file(ctx, ogg_file_path)
+        return mp3_file_path
 
     def _get_download_url(self, ctx:Context, file_id):
         ctx.log(f"getDownloadUrl: {file_id}")
@@ -247,13 +241,12 @@ class WhatsappMessenger(MessagingService):
         ctx.log(f"getDownloadUrl: downloadUrl={download_url}")
         return download_url
 
-    def _get_audio_file_paths(self, ctx:Context, chat_id, file_info):
-        temp_dir_path = file_services.make_temp_dir_name(f"r1x/wa/{chat_id}_")
-        file_path_name = temp_dir_path + '/audio'
-        ogg_file_path = file_path_name + '.ogg'
-        mp3_file_path = file_path_name + '.mp3'
+    def _get_audio_file_paths(self, ctx:Context, chat_id, file_info, work_dir):
+        ogg_file_path = work_dir / 'audio.ogg'
+        mp3_file_path = work_dir / 'audio.mp3'
 
         ctx.log(f"getAudioFilePaths: oggFilePath={ogg_file_path}, mp3FilePath={mp3_file_path}")
+
         return ogg_file_path, mp3_file_path
 
 

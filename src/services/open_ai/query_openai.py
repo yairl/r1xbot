@@ -6,12 +6,13 @@ import time
 import re
 import requests
 import traceback
+from typing import Dict
 
 from box import Box
 
 
-from src.services.token_prediction import token_predictor
-from src.infra.context import Context
+from services.token_prediction import token_predictor
+from infra.context import Context
 from langchain.utilities import google_serper
 
 
@@ -129,7 +130,7 @@ def get_chat_completion_core(ctx, messenger_name, messages, model=None):
         raise e
 
 
-def get_prep_message(ctx : Context, messenger, is_final : bool) -> str:
+def get_prep_message(ctx : Context, messenger, is_final : bool) -> Dict[str, str]:
     current_date = time.strftime("%B %d, %Y", time.gmtime())
 
     is_debug_prompt = False

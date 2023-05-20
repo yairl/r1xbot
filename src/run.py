@@ -4,11 +4,11 @@ import os
 
 import boto3
 
-from src.utils import logger, init_env_vars
-from src.infra.context import Context
+from utils import logger, init_env_vars
+from infra.context import Context
 init_env_vars.config()
 
-from src.controllers.handle_incoming_messages import handle_incoming_message
+import message_handler
 
 import threading
 import traceback
@@ -20,7 +20,7 @@ QUEUE_URL = os.environ["SQS_QUEUE_URL"]
 def process_message(message):
     ctx = Context()
     print(message)
-    result = handle_incoming_message(ctx, message['Body'])
+    result = message_handler.handle_incoming_message(ctx, message['Body'])
     ctx.log("Finished handling message")
 
 def single_sqs_handler(queue):

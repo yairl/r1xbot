@@ -1,6 +1,6 @@
 import threading
 from typing import Any, Dict 
-from src.utils import logger
+from utils import logger
 
 
 class ThreadSafeCounter:

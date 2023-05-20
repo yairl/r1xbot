@@ -1,6 +1,6 @@
 from pydub import AudioSegment
 
-from src.infra.context import Context
+from infra.context import Context
 
 def convert_ogg_to_mp3(ctx:Context, ogg_file_path:str, mp3_file_path:str) -> str:
     try:

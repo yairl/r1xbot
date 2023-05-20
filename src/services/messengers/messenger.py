@@ -3,7 +3,7 @@ from typing import Tuple
 
 from box import Box
 
-from src.infra.context import Context
+from infra.context import Context
 
 
 class MessageKindE:
@@ -38,7 +38,7 @@ class MessagingService(ABC):
         pass
 
     @abstractmethod
-    def get_voice_mp3_file(self, ctx:Context, parsed_message, file_info) -> str:
+    def get_voice_mp3_file(self, ctx:Context, parsed_message, file_info, work_dir) -> str:
         pass
 
     @abstractmethod
