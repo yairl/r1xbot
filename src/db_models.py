@@ -71,7 +71,7 @@ class Event(Base):
 class Timer(Base):
     __tablename__ = 'timers'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, server_default=text("nextval('timer_id_seq'::regclass)"))
     chat_id = Column(String, index=True)
     trigger_timestamp = Column(DateTime, index=True)
     data = Column(JSONB)

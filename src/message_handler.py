@@ -97,7 +97,7 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
 
     ctx.log("calling get_chat_completion...")
     messenger_name = "WhatsApp" if parsed_event["source"] == "wa" else "Telegram"
-    completion = get_chat_completion_with_tools(ctx, messenger_name, message_history, False)
+    completion = get_chat_completion_with_tools(ctx, messenger_name, message_history, direct=False, parsed_message=parsed_message)
 
     ctx.log({"completion": completion})
     ctx.log("get_chat_completion done, result is ", completion.response)

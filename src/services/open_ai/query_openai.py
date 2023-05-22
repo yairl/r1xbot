@@ -9,6 +9,7 @@ import traceback
 from typing import Dict
 
 from box import Box
+from services.timers import create_alert
 
 
 from services.token_prediction import token_predictor
@@ -145,12 +146,14 @@ Your task is to provide R1X's answer.
 
 You can invoke one of the following tools to augment your knowledge before replying:
 
+ALERT: sets a reminder for the user. TOOL_INPUT=(seconds, text), where seconds is relative time in seconds from request to when alert should be provided.
 SEARCH: performs a Google search and returns key results. Use this tool to fetch real-time, up-to-date information about world events. Its data is more reliable than your existing knowledge. TOOL_INPUT=search prompt.
 WEATHER: per-location 3-day weather forecast, at day granularity. It does not provide a finer-grained forecast. TOOL_INPUT=<City, Country>, both in English. TOOL_INPUT should always be a well-defined settlement and country/state. IMPORTANT: If you believe the right value for TOOL_INPUT is unknown/my location/similar, do not ask for the tool to be invoked and instead use the ANSWER format to ask the user for location information.
 
 For invoking a tool, provide your reply wrapped in <yair1xigoresponse>REPLY</yair1xigoresponse> tags, where REPLY is in JSON format with the following fields: TOOL, TOOL_INPUT.
 Examples:
 
+<yair1xigoresponse>{{ "TOOL" : "ALERT", "TOOL_INPUT" : (240, "Do the dishes") }}</yair1xigoresponse>
 <yair1xigoresponse>{{ "TOOL" : "SEARCH", "TOOL_INPUT" : "Who is the current UK PM?" }}</yair1xigoresponse>
 <yair1xigoresponse>{{ "TOOL" : "WEATHER", "TOOL_INPUT" : "Tel Aviv, Israel" }}</yair1xigoresponse>
 
@@ -164,12 +167,13 @@ Example:
 When providing a final answer, use this exact format, and do not deviate.
 IMPORTANT: ALWAYS wrap your final answer with <yair1xigoresponse> tags, and in JSON format.
 
-Today's date is {current_date}.
+Today's full date time is {current_date}.
 For up-to-date information about people, stocks and world events, ALWAYS use one of the tools available to you and DO NOT provide an answer.
 For fiction requests, use your knowledge and creativity to answer.
 If human request has no context of time, assume he is referring to current time period.
 All tools provided have real-time access to the internet; do not reply that you have no access to the internet, unless you have attempted to invoke the SEARCH tool first. Additionally, do not invoke a tool if the required TOOL_INPUT is unknown, vague, or not provided. Always follow the IMPORTANT note in the tool description.
 If you have missing data and ONLY if you cannot use the tools provided to fetch it, try to estimate; in these cases, let the user know your answer is an estimate.
+You are able to set reminders and when you are asked to do it you will invoke the ALERT tool.
 
 Don't provide your response until you made sure it is valid, and meets all prerequisites laid out for tool invocation.
 
@@ -213,7 +217,7 @@ prep_reply_message = {"role": "assistant", "content": "Understood. Please provid
 
 import datetime
 
-def get_chat_completion_with_tools(ctx: Context, messenger_name, messages, direct):
+def get_chat_completion_with_tools(ctx:Context, messenger_name, messages, direct, parsed_message):
     try:
         ctx.log("Starting getChatCompletionWithTools.")
 
@@ -275,7 +279,13 @@ def get_chat_completion_with_tools(ctx: Context, messenger_name, messages, direc
                 ctx.set_stat('tools-flow:tool-invocations', successful_iterations)
 
                 ctx.log(f"Invoking TOOL {tool} with INPUT {input_}")
-                response = invoke_tool(ctx, tool, input_)
+                response, brk = invoke_tool(ctx, tool, input_, parsed_message=parsed_message)
+                if brk:
+                    return Box({
+                    "response": response,
+                    "promptTokens": prompt_tokens_total,
+                    "completionTokens": completion_tokens_total
+                })
                 prev_responses.append(f"INVOKED TOOL={tool}, TOOL_INPUT={input_}, ACCURACY=100%, INVOCATION DATE={datetime.datetime.now().date()} RESPONSE={response}")
 
     except Exception as e:
@@ -377,7 +387,7 @@ def chat_completion_create_wrap(ctx: Context, model, messages):
 
     assert False
 
-def invoke_tool(ctx:Context, tool, input):
+def invoke_tool(ctx:Context, tool, input, parsed_message):
     tool_canon = tool.strip().upper()
 
     if tool_canon.startswith('SEARCH'):
@@ -387,14 +397,19 @@ def invoke_tool(ctx:Context, tool, input):
         answer = serper.run(input)
         ctx.log(f'SERPER search result: {answer}')
 
-        return answer
+        return answer, False
 
     if tool_canon.startswith('WEATHER'):
         answer = invoke_weather_search(ctx, input)
 
-        return answer
+        return answer, False
+    
+    if tool_canon.startswith('ALERT'):
+        create_alert(ctx, messenger_chat_id=f"{parsed_message.source}:{parsed_message.chatId}", alert_args=input, timestamp=int(parsed_message.messageTimestamp), ref_id=parsed_message.messageId)
+        return "succesfully added the timer", True
+        
 
-    return None
+    return None, False
 
 def parse_geolocation(location_data):
     regex = re.compile(r'^(\d+\.\d+)\° ([NSEW]),\s*(\d+\.\d+)\° ([NSEW])$')
