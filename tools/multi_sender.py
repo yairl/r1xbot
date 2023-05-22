@@ -6,18 +6,16 @@ import os
 from typing import Dict, List
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from infra import utils
-from services.messengers.messenger import MessagingService
+from infra import utils 
 
 utils.load_env()
 
 from src.infra.context import Context
-from src.services.messengers.messenger_factory import messenger_by_type
+from src.services.messengers.messenger_factory import get_messenger_and_chat_id
 
 def multi_send(ctx:Context, full_chat_ids: List[str], attrs: Dict[str,str]):
     for full_chat_id in full_chat_ids:
-        messenger_str, chat_id = full_chat_id.split(':')
-        messenger = messenger_by_type[messenger_str]
+        messenger, chat_id = get_messenger_and_chat_id(full_chat_id)
         attrs['chat_id'] = chat_id
         response = messenger.send_message(ctx, attrs)
         print(response)
