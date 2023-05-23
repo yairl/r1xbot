@@ -170,7 +170,7 @@ class WhatsappMessenger(MessagingService):
             raise error
         return response
     
-    def send_bot_contact(self, ctx: Context, chat_id:str):
+    def send_contact(self, ctx: Context, chat_id:str, name:str, handle:str):
         headers = {
             "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
             "Content-Type": "application/json"
@@ -185,16 +185,16 @@ class WhatsappMessenger(MessagingService):
                     "addresses": [],
                     "emails": [],
                     "name": {
-                        "first_name": "Robot 1-X",
-                        "formatted_name": "Robot 1-X",
+                        "first_name": name,
+                        "formatted_name": name,
                         "last_name": ""
                     },
                     "org": {},
                     "phones": [
                         {
-                            "phone": f"+{os.environ['WHATSAPP_PHONE_NUMBER']}",
+                            "phone": f"+{handle}",
                             "type": "HOME",
-                            "wa_id": os.environ['WHATSAPP_PHONE_NUMBER']
+                            "wa_id": handle
                         }
                     ],
                     "urls": []

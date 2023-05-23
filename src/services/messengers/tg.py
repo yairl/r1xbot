@@ -12,8 +12,6 @@ from box import Box
 
 import threading
 
-
-tg_bot_path = f"https://t.me/{os.environ['TELEGRAM_BOT_NAME']}"
 class TelegramMessenger(MessagingService):
     
     def _get_message_kind(self, message) -> Optional[str]:
@@ -75,8 +73,8 @@ class TelegramMessenger(MessagingService):
             messages_service.insert_message(ctx, parsed_message)
             ctx.log(f'Message inserted successfully: {parsed_message}')
     
-    def send_bot_contact(self, ctx: Context, chat_id:str):
-        args = {'chat_id': chat_id, 'text': tg_bot_path}
+    def send_contact(self, ctx: Context, chat_id:str, name:str, handle:str):
+        args = {'chat_id': chat_id, 'text': f'https://t.me/{handle}'}
         response = requests.post(
             f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendMessage',
             json=args
