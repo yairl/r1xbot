@@ -34,6 +34,7 @@ class TelegramMessenger(MessagingService):
         chat_id = str(message['chat']['id'])
         sender_id = str(message['from']['id'])
         is_sent_by_me = message['from']['id'] == int(os.environ['TELEGRAM_SENDER_ID'])
+        is_forwarded = message.get('forward_from', None) != None
         messageId = str(message['message_id'])
         reply_to_message_id = message['reply_to_message']['message_id'] if 'reply_to_message' in message else None
         kind = self._get_message_kind(message)
@@ -49,6 +50,7 @@ class TelegramMessenger(MessagingService):
                 'chatId': chat_id,
                 'senderId': sender_id,
                 'isSentByMe': is_sent_by_me,
+                'isForwarded': is_forwarded,
                 'messageId': messageId,
                 'replyToMessageId': reply_to_message_id,
                 'kind': kind,

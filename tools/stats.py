@@ -31,7 +31,7 @@ def get_active_chats_count(start_date, end_date):
 def get_active_chat_histogram(start_date, end_date):
     cur = ps.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    cur.execute('''SELECT "chatId", chat_id_count FROM (SELECT "chatId", COUNT(*) as chat_id_count FROM "Messages" WHERE DATE("createdAt") >= '%s' AND DATE("createdAt") <= '%s' GROUP BY "chatId") AS chat_count_table ORDER BY chat_id_count DESC;''' % (start_date, end_date))
+    cur.execute('''SELECT source, "chatId", chat_id_count FROM (SELECT source, "chatId", COUNT(*) as chat_id_count FROM "Messages" WHERE DATE("createdAt") >= '%s' AND DATE("createdAt") <= '%s' GROUP BY source, "chatId") AS chat_count_table ORDER BY chat_id_count DESC;''' % (start_date, end_date))
 
     chats = []
     for member in cur.fetchall():
@@ -53,12 +53,12 @@ print('Active chats today: ', len(chats))
 msg_arr = []
 
 for chat in chats:
-    (chat_id, msgs) = chat
+    (source ,chat_id, msgs) = chat
     msg_arr.append(msgs)
-    if msgs < 20:
+    if msgs < 8:
         continue
     
-    print(chat_id, msgs)
+    print(source, chat_id, msgs)
 
 print(numpy.histogram(msg_arr, [0, 5, 10, 15, 20, 50, 100]))
 

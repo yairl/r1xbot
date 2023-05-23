@@ -33,22 +33,25 @@ class WhatsappMessenger(MessagingService):
         if event_kind != EventKindE.MESSAGE:
             return None
 
-        kind = self._get_message_kind(message['entry'][0]['changes'][0]['value']['messages'][0])
-        message_timestamp = float(message['entry'][0]['changes'][0]['value']['messages'][0]['timestamp'])
-        sender_id = message['entry'][0]['changes'][0]['value']['messages'][0]['from']
+        message0 = message0
+
+        kind = self._get_message_kind(message0)
+        message_timestamp = float(message0['timestamp'])
+        sender_id = message0['from']
         chat_id = sender_id
         chat_type = "private"
         is_sent_by_me = sender_id == os.environ['WHATSAPP_PHONE_NUMBER']
-        message_id = message['entry'][0]['changes'][0]['value']['messages'][0]['id']
-        reply_to_message_id = message['entry'][0]['changes'][0]['value']['messages'][0].get('context', {}).get('id')
+        is_forwarded = (message0.get('context', {}).get('forwarded', None) != None)
+        message_id = message0['id']
+        reply_to_message_id = message0.get('context', {}).get('id')
 
         if kind == MessageKindE.TEXT:
-            body = message['entry'][0]['changes'][0]['value']['messages'][0]['text']['body']
+            body = message0['text']['body']
         else:
             body = None
 
         if kind == MessageKindE.VOICE:
-            file_id = message['entry'][0]['changes'][0]['value']['messages'][0]['audio']['id']
+            file_id = message0['audio']['id']
         else:
             file_id = None
 
@@ -61,6 +64,7 @@ class WhatsappMessenger(MessagingService):
             "chatId": chat_id,
             "senderId": sender_id,
             "isSentByMe": is_sent_by_me,
+            "isForwarded" : is_forwarded,
             "messageId": message_id,
             "replyToMessageId": reply_to_message_id,
             "kind": kind,

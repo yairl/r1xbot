@@ -68,29 +68,11 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
     is_typing = False
 
     if parsed_message.kind == "voice":
-        messenger.set_typing(parsed_message.chatId, in_flight)
         is_typing = True
+        handle_audio_message(ctx, messenger, parsed_message, file_info, in_flight)
 
-        parsed_message.body = get_transcript(ctx, messenger, parsed_message, file_info)
-
-        prefix_text = "\N{SPEAKING HEAD IN SILHOUETTE}\N{MEMO}: "
-
-        messenger.send_message_raw(ctx, {
-            "chat_id": parsed_message.chatId,
-            "kind": "text",
-            "body": prefix_text + parsed_message.body,
-            "quote_id": parsed_message.messageId
-        })
-
-        posthog_client.capture(
-            distinct_id = f"{parsed_message.source}:{parsed_message.chatId}",
-            event = "message-transcribed",
-            properties = {
-                'sender_id': parsed_message.senderId,
-                'channel': ctx.user_channel,
-                'length_in_seconds': -1
-            }
-        )
+        if parsed_message.isForwarded:
+            return
 
     message = insert_message(ctx, parsed_message)
 
@@ -143,7 +125,44 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
             'processing_time_ms': processing_time_ms,
         }
     )
-    
+
+def handle_audio_message(ctx, messenger, parsed_message, file_info, in_flight):
+    messenger.set_typing(parsed_message.chatId, in_flight)
+
+    transcript = get_transcript(ctx, messenger, parsed_message, file_info)
+    text = "\N{SPEAKING HEAD IN SILHOUETTE}\N{MEMO}: " + transcript
+
+    send_attrs = {
+        "chat_id": parsed_message.chatId,
+        "kind": "text",
+        "body": text,
+        "quote_id": parsed_message.messageId
+    }
+
+    # Designed behavior:
+    #
+    # Forwarded messages: transcribe and exit
+    # Original messages: transcribe and respond
+
+    if parsed_message.isForwarded:
+        parsed_message.body = "Please transcribe: <audio.mp3 file>"
+        insert_message(ctx, parsed_message)
+        messenger.send_message(ctx, send_attrs)
+    else:
+        parsed_message.body = transcript
+        messenger.send_message_raw(ctx, send_attrs)
+
+    posthog_client.capture(
+        distinct_id = f"{parsed_message.source}:{parsed_message.chatId}",
+        event = "message-transcribed",
+        properties = {
+            'sender_id': parsed_message.senderId,
+            'channel': ctx.user_channel,
+            'length_in_seconds': -1
+        }
+    )
+
+
 
 def send_intro_message(ctx:Context, messenger, parsed_message):
     intro_message_legal = """Robot 1-X at your service!
