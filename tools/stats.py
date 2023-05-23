@@ -31,6 +31,7 @@ def get_active_chats_count(start_date, end_date):
 def get_active_chat_histogram(start_date, end_date):
     cur = ps.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
+    # Select <source>:<chat>, so this data can be used later to send messages to specific users.
     cur.execute('''SELECT source, "chatId", chat_id_count FROM (SELECT source, "chatId", COUNT(*) as chat_id_count FROM "Messages" WHERE DATE("createdAt") >= '%s' AND DATE("createdAt") <= '%s' GROUP BY source, "chatId") AS chat_count_table ORDER BY chat_id_count DESC;''' % (start_date, end_date))
 
     chats = []
