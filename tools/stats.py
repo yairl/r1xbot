@@ -53,13 +53,21 @@ print('Active chats today: ', len(chats))
 
 msg_arr = []
 
+numbers = [] 
+
 for chat in chats:
-    (source ,chat_id, msgs) = chat
+    (source, chat_id, msgs) = chat
     msg_arr.append(msgs)
+
+    if source == 'wa':
+        numbers.append(f'{source}:{chat_id}')
+
     if msgs < 8:
         continue
     
     print(source, chat_id, msgs)
+
+print(','.join(numbers))
 
 print(numpy.histogram(msg_arr, [0, 5, 10, 15, 20, 50, 100]))
 

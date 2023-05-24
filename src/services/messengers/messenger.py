@@ -26,7 +26,7 @@ class MessagingService(ABC):
     
     
     @abstractmethod
-    def send_bot_contact(self, ctx:Context, chat_id:str):
+    def send_contact(self, ctx:Context, chat_id:str, name:str, handle:str):
         pass
     
     @abstractmethod

@@ -12,8 +12,6 @@ from box import Box
 
 import threading
 
-
-tg_bot_path = f"https://t.me/{os.environ['TELEGRAM_BOT_NAME']}"
 class TelegramMessenger(MessagingService):
     
     def _get_message_kind(self, message) -> Optional[str]:
@@ -75,8 +73,8 @@ class TelegramMessenger(MessagingService):
             messages_service.insert_message(ctx, parsed_message)
             ctx.log(f'Message inserted successfully: {parsed_message}')
     
-    def send_bot_contact(self, ctx: Context, chat_id:str):
-        args = {'chat_id': chat_id, 'text': tg_bot_path}
+    def send_contact(self, ctx: Context, chat_id:str, name:str, handle:str):
+        args = {'chat_id': chat_id, 'text': f'https://t.me/{handle}'}
         response = requests.post(
             f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendMessage',
             json=args
@@ -123,10 +121,10 @@ class TelegramMessenger(MessagingService):
     def get_voice_mp3_file(self, ctx:Context, parsed_message, file_info, work_dir) -> str:
         ctx.log(f"getVoiceMp3File: {parsed_message}, {file_info}, {work_dir}")
         url = self._get_download_url(ctx, file_info.fileId)
-        ogg_file_path, mp3_file_path = self._get_audio_file_paths(ctx, parsed_message.chatId, file_info, work_dir)
+        orig_file_path, mp3_file_path = self._get_audio_file_paths(ctx, parsed_message.chatId, file_info, work_dir)
 
-        download_services.download_stream_file(ctx, url, ogg_file_path)
-        media_converters.convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path)
+        download_services.download_stream_file(ctx, url, orig_file_path)
+        media_converters.convert_audio_to_mp3(ctx, orig_file_path, mp3_file_path)
 
         return mp3_file_path
 
@@ -149,12 +147,12 @@ class TelegramMessenger(MessagingService):
         return download_url
 
     def _get_audio_file_paths(self, ctx:Context, chat_id, file_info, work_dir):
-        ogg_file_path = work_dir / 'audio.ogg'
+        orig_file_path = work_dir / 'audio.orig'
         mp3_file_path = work_dir / 'audio.mp3'
 
-        ctx.log(f"getAudioFilePaths: oggFilePath={ogg_file_path}, mp3FilePath={mp3_file_path}")
+        ctx.log(f"getAudioFilePaths: origFilePath={orig_file_path}, mp3FilePath={mp3_file_path}")
 
-        return ogg_file_path, mp3_file_path
+        return orig_file_path, mp3_file_path
 
     def set_typing(self, chat_id, in_flight):
         if not in_flight["working"]:
