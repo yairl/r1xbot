@@ -121,10 +121,10 @@ class TelegramMessenger(MessagingService):
     def get_voice_mp3_file(self, ctx:Context, parsed_message, file_info, work_dir) -> str:
         ctx.log(f"getVoiceMp3File: {parsed_message}, {file_info}, {work_dir}")
         url = self._get_download_url(ctx, file_info.fileId)
-        ogg_file_path, mp3_file_path = self._get_audio_file_paths(ctx, parsed_message.chatId, file_info, work_dir)
+        orig_file_path, mp3_file_path = self._get_audio_file_paths(ctx, parsed_message.chatId, file_info, work_dir)
 
-        download_services.download_stream_file(ctx, url, ogg_file_path)
-        media_converters.convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path)
+        download_services.download_stream_file(ctx, url, orig_file_path)
+        media_converters.convert_audio_to_mp3(ctx, orig_file_path, mp3_file_path)
 
         return mp3_file_path
 
@@ -147,12 +147,12 @@ class TelegramMessenger(MessagingService):
         return download_url
 
     def _get_audio_file_paths(self, ctx:Context, chat_id, file_info, work_dir):
-        ogg_file_path = work_dir / 'audio.ogg'
+        orig_file_path = work_dir / 'audio.orig'
         mp3_file_path = work_dir / 'audio.mp3'
 
-        ctx.log(f"getAudioFilePaths: oggFilePath={ogg_file_path}, mp3FilePath={mp3_file_path}")
+        ctx.log(f"getAudioFilePaths: origFilePath={orig_file_path}, mp3FilePath={mp3_file_path}")
 
-        return ogg_file_path, mp3_file_path
+        return orig_file_path, mp3_file_path
 
     def set_typing(self, chat_id, in_flight):
         if not in_flight["working"]:
