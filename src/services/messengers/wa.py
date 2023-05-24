@@ -170,7 +170,7 @@ class WhatsappMessenger(MessagingService):
             raise error
         return response
     
-    def send_bot_contact(self, ctx: Context, chat_id:str):
+    def send_contact(self, ctx: Context, chat_id:str, name:str, handle:str):
         headers = {
             "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
             "Content-Type": "application/json"
@@ -185,16 +185,16 @@ class WhatsappMessenger(MessagingService):
                     "addresses": [],
                     "emails": [],
                     "name": {
-                        "first_name": "Robot 1-X",
-                        "formatted_name": "Robot 1-X",
+                        "first_name": name,
+                        "formatted_name": name,
                         "last_name": ""
                     },
                     "org": {},
                     "phones": [
                         {
-                            "phone": f"+{os.environ['WHATSAPP_PHONE_NUMBER']}",
+                            "phone": f"+{handle}",
                             "type": "HOME",
-                            "wa_id": os.environ['WHATSAPP_PHONE_NUMBER']
+                            "wa_id": handle
                         }
                     ],
                     "urls": []
@@ -213,14 +213,14 @@ class WhatsappMessenger(MessagingService):
     def get_voice_mp3_file(self, ctx:Context, parsed_message, file_info, work_dir) -> str:
         ctx.log(f"getVoiceMp3File: {parsed_message}, {file_info}, {work_dir}")
         url = self._get_download_url(ctx, file_info.fileId)
-        ogg_file_path, mp3_file_path = self._get_audio_file_paths(ctx, parsed_message.chatId, file_info, work_dir)
+        orig_file_path, mp3_file_path = self._get_audio_file_paths(ctx, parsed_message.chatId, file_info, work_dir)
 
         headers = {
             "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
         }
 
-        download_services.download_stream_file(ctx, url, ogg_file_path, headers)
-        media_converters.convert_ogg_to_mp3(ctx, ogg_file_path, mp3_file_path)
+        download_services.download_stream_file(ctx, url, orig_file_path, headers)
+        media_converters.convert_audio_to_mp3(ctx, orig_file_path, mp3_file_path)
 
         return mp3_file_path
 
@@ -246,12 +246,12 @@ class WhatsappMessenger(MessagingService):
         return download_url
 
     def _get_audio_file_paths(self, ctx:Context, chat_id, file_info, work_dir):
-        ogg_file_path = work_dir / 'audio.ogg'
+        orig_file_path = work_dir / 'audio.orig'
         mp3_file_path = work_dir / 'audio.mp3'
 
-        ctx.log(f"getAudioFilePaths: oggFilePath={ogg_file_path}, mp3FilePath={mp3_file_path}")
+        ctx.log(f"getAudioFilePaths: orgFilePath={orig_file_path}, mp3FilePath={mp3_file_path}")
 
-        return ogg_file_path, mp3_file_path
+        return orig_file_path, mp3_file_path
 
 
     def set_typing(self, chat_id, in_flight):
