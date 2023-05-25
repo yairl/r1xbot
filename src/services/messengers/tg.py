@@ -95,6 +95,15 @@ class TelegramMessenger(MessagingService):
         ).json()
 
         return response
+    
+    def send_contact(self, ctx: Context, chat_id:str, name:str, handle:str):
+        args = {'chat_id': chat_id, 'text': f'https://t.me/{handle}'}
+        response = requests.post(
+            f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendMessage',
+            json=ar
+        ).json()
+
+        return response
 
 
     def is_message_for_me(self, msg) -> bool:
