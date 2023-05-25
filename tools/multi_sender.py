@@ -18,7 +18,7 @@ def multi_send(ctx:Context, full_chat_ids: List[str], attrs: Dict[str,str]):
         messenger_str, chat_id = full_chat_id.split(':')
         messenger = messenger_by_type[messenger_str]
         attrs['chat_id'] = chat_id
-        response = messenger.send_message_raw(ctx, attrs)
+        response = messenger.send_message(ctx, attrs)
         print(response)
 
         should_send_contact = attrs['contact_name'] and attrs['contact_handle']

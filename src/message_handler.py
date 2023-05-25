@@ -10,10 +10,11 @@ from sqlalchemy import desc
 from typing import Any, Dict
 
 from services.messengers import messenger_factory
+from services.messengers.messenger import MessagingService
 
 from services.open_ai.query_openai import get_chat_completion, get_chat_completion_with_tools, create_transcription
 import db_models
-from services.messages.messages_service import insert_message, get_message_history
+from services.message_db import insert_message, get_message_history
 import services.messengers as messengers
 from infra.context import Context
 
@@ -101,7 +102,7 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
     ctx.log({"completion": completion})
     ctx.log("get_chat_completion done, result is ", completion.response)
 
-    messenger.send_message(ctx, {
+    send_and_store(ctx, messenger, {
         'chat_id': parsed_message.chatId,
         'kind': "text",
         'body': completion.response
@@ -147,10 +148,11 @@ def handle_audio_message(ctx, messenger, parsed_message, file_info, in_flight):
     if parsed_message.isForwarded:
         parsed_message.body = "Please transcribe: <audio.mp3 file>"
         insert_message(ctx, parsed_message)
-        messenger.send_message(ctx, send_attrs)
+        send_and_store(ctx, messenger, send_attrs)
     else:
         parsed_message.body = transcript
-        messenger.send_message_raw(ctx, send_attrs)
+        # Use messenger.send_message directly, so transcribed reply is not stored in DB
+        messenger.send_message(ctx, send_attrs)
 
     posthog_client.capture(
         distinct_id = f"{parsed_message.source}:{parsed_message.chatId}",
@@ -188,13 +190,13 @@ And, you can record a message instead of typing!
 
 How can I help?"""
 
-    messenger.send_message(ctx, {
+    send_and_store(ctx, messenger, {
         "chat_id": parsed_message["chatId"],
         "kind": "text",
         "body": intro_message_legal
     })
 
-    messenger.send_message(ctx, {
+    send_and_store(ctx, messenger, {
         "chat_id": parsed_message["chatId"],
         "kind": "text",
         "body": intro_message_overview
@@ -211,3 +213,9 @@ def get_transcript(ctx:Context, messenger, parsed_message, file_info):
         transcription = create_transcription(ctx, mp3_file_path)
 
         return transcription
+
+def send_and_store(ctx: Context, messenger: MessagingService, message_attributes):
+    response = messenger.send_message(ctx, message_attributes)
+
+    if response:
+        insert_message(ctx, response)
