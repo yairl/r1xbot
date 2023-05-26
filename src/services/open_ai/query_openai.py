@@ -213,7 +213,7 @@ prep_reply_message = {"role": "assistant", "content": "Understood. Please provid
 
 import datetime
 
-def get_chat_completion_with_tools(ctx, messenger_name, messages, direct):
+def get_chat_completion_with_tools(ctx: Context, messenger_name, messages, direct):
     try:
         ctx.log("Starting getChatCompletionWithTools.")
 
@@ -258,6 +258,10 @@ def get_chat_completion_with_tools(ctx, messenger_name, messages, direct):
                 if successful_iterations > 0:
                     answer = "\N{LEFT-POINTING MAGNIFYING GLASS}: " + answer
 
+                ctx.set_stat('response-iterations', i + 1)
+                ctx.set_stat('tools-flow-success', True)
+                ctx.set_stat('response-tool-invocations', successful_iterations)
+
                 return Box({
                     "response": answer,
                     "promptTokens": prompt_tokens_total,
@@ -276,6 +280,8 @@ def get_chat_completion_with_tools(ctx, messenger_name, messages, direct):
         traceback.print_exc();
 
     ctx.log("getChatCompletionWithTools: failed generating customized reply, falling back to getChatCompletion.")
+
+    ctx.set_stat('tools-flow-success', False)
 
     return get_chat_completion(ctx, messenger_name, messages, direct)
 

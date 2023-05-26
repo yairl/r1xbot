@@ -2,6 +2,8 @@ import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
+# This code was migrated from node.js to Python using ChatGPT.
+# Rotation is not necessarily working well.
 max_file_size = os.environ.get("MAX_LOG_FILE_SIZE", 100 * 1024 * 1024)
 max_log_files = int(os.environ.get("MAX_LOG_FILES", 50))
 
