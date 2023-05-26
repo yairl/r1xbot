@@ -2,17 +2,17 @@
 
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
-from src.utils.init_env_vars import config
+from utils.init_env_vars import config
 config()
 
 import sys
 import json
 import asyncio
 from pathlib import Path
-from src.utils.logger import logger, create_logging_context
-from src.services.open_ai.query_openai import get_chat_completion_with_tools
+from utils.logger import logger, create_logging_context
+from services.open_ai.query_openai import get_chat_completion_with_tools
 
 def run():
     args = sys.argv[1:]
@@ -29,7 +29,7 @@ def run():
     history = json.loads(data)["messages"]
 
     ctx = create_logging_context(0)
-    ctx.user_channel = 'canary'
+    ctx.user_channel = 'stable'
     reply = get_chat_completion_with_tools(ctx, 'WhatsApp', history, True)
 
     print({'reply': reply})

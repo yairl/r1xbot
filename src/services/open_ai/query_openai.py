@@ -306,8 +306,6 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses, is_f
 
     messages.append(new_request)
 
-    #model = 'gpt-4' if is_final else None
-
     reply = get_chat_completion_core(ctx, messenger_name, messages)
     result['prompt_tokens'] = reply.promptTokens
     result['completion_tokens'] = reply.completionTokens
@@ -374,6 +372,7 @@ def invoke_weather_search(ctx:Context, input):
     # serper = Serper()
     geo_prompt = f'{input} long lat'
     ctx.log(f'Invoking geolocation search using SERPER, input={geo_prompt}')
+
     serper = google_serper.GoogleSerperAPIWrapper(serper_api_key=os.environ['SERPER_API_KEY'])
     geo_res = serper.run(geo_prompt)
     ctx.log(f'SERPER geolocation result: {geo_res}')
@@ -407,4 +406,3 @@ def create_transcription(ctx:Context, mp3_file_path):
     ctx.log(f'createTranscription: timeTaken={time_taken}ms transcription={transcription}')
 
     return transcription
-
