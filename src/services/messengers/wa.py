@@ -2,7 +2,7 @@ import os
 from typing import Dict
 import requests
 from services.messengers.messenger import MessageKindE, MessagingService
-from utils import download_services, media_converters
+from infra import utils
 from box import Box
 import time
 
@@ -211,8 +211,8 @@ class WhatsappMessenger(MessagingService):
             "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
         }
 
-        download_services.download_stream_file(ctx, url, orig_file_path, headers)
-        media_converters.convert_audio_to_mp3(ctx, orig_file_path, mp3_file_path)
+        utils.download_stream_file(ctx, url, orig_file_path, headers)
+        utils.convert_audio_to_mp3(ctx, orig_file_path, mp3_file_path)
 
         return mp3_file_path
 

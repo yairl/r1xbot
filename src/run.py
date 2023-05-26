@@ -4,9 +4,9 @@ import os
 
 import boto3
 
-from utils import logger, init_env_vars
+from infra import logger, utils 
 from infra.context import Context
-init_env_vars.config()
+utils.load_env()
 
 import message_handler
 

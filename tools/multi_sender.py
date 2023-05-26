@@ -6,9 +6,10 @@ import os
 from typing import Dict, List
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import init_env_vars
+from infra import utils
 from services.messengers.messenger import MessagingService
-init_env_vars.config()
+
+utils.load_env()
 
 from src.infra.context import Context
 from src.services.messengers.messenger_factory import messenger_by_type
