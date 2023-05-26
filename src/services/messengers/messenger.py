@@ -17,13 +17,8 @@ class MessagingService(ABC):
         pass
 
     @abstractmethod
-    def send_message(self, ctx:Context, attributes) -> None:
+    def send_message(self, ctx:Context, attributes) -> Box:
         pass
-
-    @abstractmethod
-    def send_message_raw(self, ctx:Context, attributes):
-        pass
-    
     
     @abstractmethod
     def send_contact(self, ctx:Context, chat_id:str, name:str, handle:str):

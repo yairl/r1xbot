@@ -3,7 +3,6 @@ from typing import Dict
 import requests
 from services.messengers.messenger import MessageKindE, MessagingService
 from utils import download_services, media_converters
-from services.messages import messages_service
 from box import Box
 import time
 
@@ -109,20 +108,6 @@ class WhatsappMessenger(MessagingService):
 
     def send_message(self, ctx:Context, attributes):
         chat_id = attributes.get('chat_id')
-        response = self.send_message_raw(ctx, attributes)
-
-        if response:
-            message = self._get_bot_generated_message(ctx, response, attributes)
-            parsed_message, _ = self.parse_message(message)
-
-            parsed_message.chatId = chat_id
-            ctx.log(parsed_message)
-
-            messages_service.insert_message(ctx, parsed_message)
-            ctx.log(f"Message inserted successfully: {parsed_message}")
-
-    def send_message_raw(self, ctx:Context, attributes):
-        chat_id = attributes.get('chat_id')
         quote_id = attributes.get('quote_id')
         kind = attributes.get('kind')
         body = attributes.get('body')
@@ -131,7 +116,7 @@ class WhatsappMessenger(MessagingService):
             return
 
         if len(body) > 4000:
-            ctx.log('send_message_raw: message body too long, %d > 4000' % len(body))
+            ctx.log('send_message: message body too long, %d > 4000' % len(body))
             body = body[0:3999]
 
         headers = {
@@ -155,7 +140,14 @@ class WhatsappMessenger(MessagingService):
 
         response = self._post_message_request(ctx, headers, args)
 
-        return response.json()
+        if response == None:
+            return None
+
+        message = self._get_bot_generated_message(ctx, response.json(), attributes)
+        parsed_message, _ = self.parse_message(message)
+        parsed_message.chatId = chat_id
+
+        return parsed_message
 
     def _post_message_request(self, ctx:Context, headers:Dict[str,str], args):
         try:
