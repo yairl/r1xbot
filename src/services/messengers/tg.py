@@ -6,7 +6,7 @@ import requests
 
 from infra.context import Context
 from services.messengers.messenger import MessageKindE, MessagingService
-from utils import download_services, media_converters
+from infra import utils
 from box import Box
 
 import threading
@@ -115,8 +115,8 @@ class TelegramMessenger(MessagingService):
         url = self._get_download_url(ctx, file_info.fileId)
         orig_file_path, mp3_file_path = self._get_audio_file_paths(ctx, parsed_message.chatId, file_info, work_dir)
 
-        download_services.download_stream_file(ctx, url, orig_file_path)
-        media_converters.convert_audio_to_mp3(ctx, orig_file_path, mp3_file_path)
+        utils.download_stream_file(ctx, url, orig_file_path)
+        utils.convert_audio_to_mp3(ctx, orig_file_path, mp3_file_path)
 
         return mp3_file_path
 
