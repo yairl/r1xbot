@@ -361,8 +361,6 @@ def chat_completion_create_wrap(ctx, model, messages):
 
         return response
 
-        return response.json()
-
     ctx.log(f'chat_completion_create_wrap: unsupported completion model {model}.')
 
     assert False
