@@ -258,9 +258,9 @@ def get_chat_completion_with_tools(ctx: Context, messenger_name, messages, direc
                 if successful_iterations > 0:
                     answer = "\N{LEFT-POINTING MAGNIFYING GLASS}: " + answer
 
-                ctx.set_stat('response-iterations', i + 1)
-                ctx.set_stat('tools-flow-success', True)
-                ctx.set_stat('response-tool-invocations', successful_iterations)
+                ctx.set_stat('tools-flow:iterations', i + 1)
+                ctx.set_stat('tools-flow:success', True)
+                ctx.set_stat('tools-flow:tool-invocations', successful_iterations)
 
                 return Box({
                     "response": answer,
@@ -281,7 +281,7 @@ def get_chat_completion_with_tools(ctx: Context, messenger_name, messages, direc
 
     ctx.log("getChatCompletionWithTools: failed generating customized reply, falling back to getChatCompletion.")
 
-    ctx.set_stat('tools-flow-success', False)
+    ctx.set_stat('tools-flows:success', False)
 
     return get_chat_completion(ctx, messenger_name, messages, direct)
 
@@ -337,7 +337,7 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses, is_f
 
     return result
 
-def chat_completion_create_wrap(ctx, model, messages):
+def chat_completion_create_wrap(ctx: Context, model, messages):
     if model == 'gpt-4':
         response = openai.ChatCompletion().create(model=model, messages=messages, temperature=0.2)
 
@@ -358,11 +358,14 @@ def chat_completion_create_wrap(ctx, model, messages):
 
         response = requests.post(url, headers=headers, data=json.dumps(data)).json()
 
+        ctx.log('Azure GPT 3.5 response:', response)
+
         content_filter_active = response.get('error', {}).get('code') == 'content_filter' or \
                                 response.get('choices', [{}])[0].get('finish_reason') == 'content_filter'
 
         if content_filter_active:
             ctx.log('Content filtering applied; falling back to OpenAI API.')
+            ctx.set_stat('completion:content-filter', True)
             response = openai.ChatCompletion().create(model=model, messages=messages, temperature=0.2)
 
         return response
