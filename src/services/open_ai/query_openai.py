@@ -350,12 +350,22 @@ def chat_completion_create_wrap(ctx, model, messages):
             "temperature": 0.2
         }
 
-        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response = requests.post(url, headers=headers, data=json.dumps(data)).json()
+
+        content_filter_active = response.get('error', {}).get('code') == 'content_filter' or \
+                                response.get('choices', [{}])[0].get('finish_reason') == 'content_filter'
+
+        if content_filter_active:
+            ctx.log('Content filtering applied; falling back to OpenAI API.')
+            response = openai.ChatCompletion().create(model=model, messages=messages, temperature=0.2)
+
+        return response
 
         return response.json()
 
     ctx.log(f'chat_completion_create_wrap: unsupported completion model {model}.')
-    return None
+
+    assert False
 
 def invoke_tool(ctx:Context, tool, input):
     tool_canon = tool.strip().upper()
