@@ -112,19 +112,24 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
     processing_time_ms = int((time.time() - start) * 1000)
     completion_tokens_per_sec = completion.completionTokens / (processing_time_ms / 1000)
 
+    ctx.set_stat('channel', ctx.user_channel)
+    ctx.set_stat('prompt_tokens', completion.promptTokens)
+    ctx.set_stat('completion_tokens', completion.completionTokens)
+    ctx.set_stat('completion_tokens_per_sec', completion_tokens_per_sec)
+    ctx.set_stat('total_tokens', completion.promptTokens + completion.completionTokens)
+    ctx.set_stat('response_time_ms', response_time_ms)
+    ctx.set_stat('processing_time_ms', processing_time_ms)
+
+    ph_props = {
+            'senderId': parsed_message.senderId,
+    }
+
+    ph_props.update(ctx.stats)
+
     posthog_client.capture(
         distinct_id = f'{parsed_message.source}:{parsed_message.chatId}',
         event = 'reply-sent',
-        properties = {
-            'senderId': parsed_message.senderId,
-            'channel': ctx.user_channel,
-            'prompt_tokens': completion.promptTokens,
-            'completion_tokens': completion.completionTokens,
-            'completion_tokens_per_sec': completion_tokens_per_sec,
-            'total_tokens': completion.promptTokens + completion.completionTokens,
-            'response_time_ms': response_time_ms,
-            'processing_time_ms': processing_time_ms,
-        }
+        properties = ph_props
     )
 
 def handle_audio_message(ctx, messenger, parsed_message, file_info, in_flight):
