@@ -235,6 +235,8 @@ def get_chat_completion_with_tools(ctx: Context, messenger_name, messages, direc
         for i in range(max_iterations):
             ctx.log(f"Invoking completionIterativeStep #{i}")
 
+            ctx.set_stat('tools-flow:iterations', i + 1)
+
             is_final = (i == (max_iterations - 1))
 
             result = completion_iterative_step(ctx, messenger_name, deep_clone(history), prev_responses, is_final)
@@ -258,9 +260,7 @@ def get_chat_completion_with_tools(ctx: Context, messenger_name, messages, direc
                 if successful_iterations > 0:
                     answer = "\N{LEFT-POINTING MAGNIFYING GLASS}: " + answer
 
-                ctx.set_stat('tools-flow:iterations', i + 1)
                 ctx.set_stat('tools-flow:success', True)
-                ctx.set_stat('tools-flow:tool-invocations', successful_iterations)
 
                 return Box({
                     "response": answer,
@@ -270,6 +270,7 @@ def get_chat_completion_with_tools(ctx: Context, messenger_name, messages, direc
 
             if tool and input_:
                 successful_iterations += 1
+                ctx.set_stat('tools-flow:tool-invocations', successful_iterations)
 
                 ctx.log(f"Invoking TOOL {tool} with INPUT {input_}")
                 response = invoke_tool(ctx, tool, input_)
