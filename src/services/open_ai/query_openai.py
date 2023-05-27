@@ -332,8 +332,6 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses, is_f
     return result
 
 def chat_completion_create_wrap(ctx, model, messages):
-    assert model in ['gpt-3.5-turbo, gpt-4']
-
     if model == 'gpt-4':
         response = openai.ChatCompletion().create(model=model, messages=messages, temperature=0.2)
 
@@ -353,6 +351,8 @@ def chat_completion_create_wrap(ctx, model, messages):
         }
 
         response = requests.post(url, headers=headers, data=json.dumps(data))
+
+        return response.json()
 
     ctx.log(f'chat_completion_create_wrap: unsupported completion model {model}.')
     return None
