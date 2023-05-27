@@ -4,14 +4,14 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
-from utils.init_env_vars import config
-config()
+from infra.utils import load_env
+load_env()
 
 import sys
 import json
 import asyncio
 from pathlib import Path
-from utils.logger import logger, create_logging_context
+from infra.logger import logger, create_logging_context
 from services.open_ai.query_openai import get_chat_completion_with_tools
 
 def run():
