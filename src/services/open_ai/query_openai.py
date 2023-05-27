@@ -107,11 +107,8 @@ def get_chat_completion_core(ctx, messenger_name, messages, model=None):
     try:
         ctx.log("Messages: ", messages);
         ctx.log("invoking completion request.")
-        completion = openai.ChatCompletion().create(
-            model=model,
-            messages=messages,
-            temperature=0.2
-        )
+
+        completion = chat_completion_create_wrap(ctx, model, messages)
 
         ctx.log("getChatCompletionCore response: ", completion['choices'][0]['message']['content'])
 
@@ -333,6 +330,32 @@ def completion_iterative_step(ctx, messenger_name, history, prev_responses, is_f
         return result
 
     return result
+
+def chat_completion_create_wrap(ctx, model, messages):
+    assert model in ['gpt-3.5-turbo, gpt-4']
+
+    if model == 'gpt-4':
+        response = openai.ChatCompletion().create(model=model, messages=messages, temperature=0.2)
+
+        return response
+
+    if model == 'gpt-3.5-turbo':
+        url = "https://r1x.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-05-15"
+
+        headers = {
+            "Content-Type": "application/json",
+            "api-key": os.environ['AZURE_OPENAI_KEY']
+        }
+
+        data = {
+            "messages" : messages,
+            "temperature": 0.2
+        }
+
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+
+    ctx.log(f'chat_completion_create_wrap: unsupported completion model {model}.')
+    return None
 
 def invoke_tool(ctx:Context, tool, input):
     tool_canon = tool.strip().upper()
