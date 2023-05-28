@@ -232,6 +232,8 @@ def get_chat_completion_with_tools(ctx: Context, messenger_name, messages, direc
         max_iterations = 2
         successful_iterations = 0
 
+        ctx.set_stat('tools-flow:tool-invocations', successful_iterations)
+
         for i in range(max_iterations):
             ctx.log(f"Invoking completionIterativeStep #{i}")
 
