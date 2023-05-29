@@ -30,6 +30,11 @@ def run():
 
     ctx = create_logging_context(0)
     ctx.user_channel = 'stable'
+
+    def dummy_fn(*args, **kwargs):
+        return
+
+    ctx.set_stat = dummy_fn 
     reply = get_chat_completion_with_tools(ctx, 'WhatsApp', history, True)
 
     print({'reply': reply})
