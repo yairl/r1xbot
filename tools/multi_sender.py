@@ -5,14 +5,14 @@ import sys
 import os
 from typing import Dict, List
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from infra import utils
 from services.messengers.messenger import MessagingService
 
 utils.load_env()
 
-from src.infra.context import Context
-from src.services.messengers.messenger_factory import messenger_by_type
+from infra.context import Context
+from services.messengers.messenger_factory import messenger_by_type
 
 def multi_send(ctx:Context, full_chat_ids: List[str], attrs: Dict[str,str]):
     for full_chat_id in full_chat_ids:
