@@ -11,6 +11,8 @@ from box import Box
 
 import threading
 
+TELEGRAM_SENDER_ID = os.environ['TELEGRAM_BOT_TOKEN'].split(':')[0]
+
 class TelegramMessenger(MessagingService):
     
     def _get_message_kind(self, message) -> Optional[str]:
@@ -30,7 +32,7 @@ class TelegramMessenger(MessagingService):
         chat_type = message['chat']['type']
         chat_id = str(message['chat']['id'])
         sender_id = str(message['from']['id'])
-        is_sent_by_me = message['from']['id'] == int(os.environ['TELEGRAM_SENDER_ID'])
+        is_sent_by_me = message['from']['id'] == int(TELEGRAM_SENDER_ID)
         is_forwarded = message.get('forward_from', None) != None
         messageId = str(message['message_id'])
         reply_to_message_id = message['reply_to_message']['message_id'] if 'reply_to_message' in message else None
@@ -104,7 +106,7 @@ class TelegramMessenger(MessagingService):
         if msg.body.startswith(f'@{os.environ["TELEGRAM_BOT_NAME"]}'):
             return True
 
-        if 'reply_to_message' in msg.rawSource and msg.rawSource['reply_to_message']['from']['id'] == int(os.environ['TELEGRAM_SENDER_ID']):
+        if 'reply_to_message' in msg.rawSource and msg.rawSource['reply_to_message']['from']['id'] == int(TELEGRAM_SENDER_ID):
             return True
 
         return False

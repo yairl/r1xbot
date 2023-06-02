@@ -39,3 +39,7 @@ def load_env():
 
     load_dotenv(f"./.env.{stage}")
 
+    # If no database is provided, resort to a locally-hosted SQLite version.
+    # Typically used for testing.
+    if os.environ['DB_CONNECTION_STRING'] == '':
+        os.environ['DB_CONNECTION_STRING'] = 'sqlite:///file::memory:?cache=shared'

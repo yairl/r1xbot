@@ -2,12 +2,23 @@
 import os
 
 import sqlalchemy
-from sqlalchemy import create_engine
-from sqlalchemy import Boolean, Column, DateTime, Index, Integer, JSON, String, Text, text
+from sqlalchemy import create_engine, func
+from sqlalchemy import Boolean, Column, DateTime, Index, Integer, JSON, String, Text, text, TypeDecorator
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine.url import URL
+
+# JSONB is not supported by SQLite, but is supported by PostgreSQL.
+# DialectAdapter selects the right one is used per database type.
+class DialectAdapter(TypeDecorator):
+    impl = JSON
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(JSONB())
+        else:
+            return dialect.type_descriptor(JSON())
 
 ### Start of table definitions ###
 
@@ -21,7 +32,7 @@ class Message(Base):
         Index('index_on_messages_created_at_chat_id', 'createdAt', 'chatId')
     )
 
-    id = Column(Integer, primary_key=True, server_default=text("""nextval('"Messages_id_seq"'::regclass)"""))
+    id = Column(Integer, primary_key=True)
     source = Column(String(255))
     messageTimestamp = Column(DateTime(True))
     chatType = Column(String(255))
@@ -46,9 +57,9 @@ class SequelizeMeta(Base):
 class UserSettings(Base):
     __tablename__ = 'user_settings'
 
-    id = Column(Integer, primary_key=True, server_default=text("nextval('user_settings_id_seq'::regclass)"))
+    id = Column(Integer, primary_key=True)
     user_id = Column(String(255), nullable=False, index=True)
-    settings = Column(JSONB, nullable=False)
+    settings = Column(DialectAdapter, nullable=False)
     version = Column(Integer, nullable=False)
     createdAt = Column(DateTime(True), nullable=False, index=True)
     updatedAt = Column(DateTime(True), nullable=False)
@@ -60,8 +71,8 @@ class Event(Base):
     type = Column(String)
     ref_table = Column(String)
     ref_id = Column(Integer)
-    body = Column(JSONB)
-    created_at = Column(DateTime(timezone=True), server_default=text('NOW()'), nullable=False)
+    body = Column(DialectAdapter)
+    created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
 
     __table_args__ = (
         sqlalchemy.Index('ix_events_type', 'type'),
@@ -74,7 +85,7 @@ class Timer(Base):
     id = Column(Integer, primary_key=True)
     chat_id = Column(String, index=True)
     trigger_timestamp = Column(DateTime, index=True)
-    data = Column(JSONB)
+    data = Column(DialectAdapter)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
 

@@ -15,6 +15,7 @@ from services.token_prediction import token_predictor
 from infra.context import Context
 from langchain.utilities import google_serper
 
+OPENAI_SPEECH_TO_TEXT_MODEL = 'whisper-1'
 
 openai.api_key = os.environ['OPENAI_API_KEY']
 
@@ -347,6 +348,10 @@ def chat_completion_create_wrap(ctx: Context, model, messages):
         return response
 
     if model == 'gpt-3.5-turbo':
+        # TODO: cleanup per issue #55
+        if os.environ['AZURE_OPENAI_KEY'] == '':
+            return openai.ChatCompletion().create(model=model, messages=messages, temperature=0.2)
+
         url = "https://r1x.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-05-15"
 
         headers = {
