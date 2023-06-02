@@ -135,8 +135,8 @@ class WhatsappMessenger(MessagingService):
             }
         }
 
-        #if quote_id:
-        #    args["context"] = {"message_id": quote_id}
+        if quote_id:
+            args["context"] = {"message_id": quote_id}
 
         response = self._post_message_request(ctx, headers, args)
 
