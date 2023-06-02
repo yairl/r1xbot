@@ -146,7 +146,7 @@ Your task is to provide R1X's answer.
 
 You can invoke one of the following tools to augment your knowledge before replying:
 
-ALERT: sets a reminder for the user. TOOL_INPUT=(seconds, text), where seconds is relative time in seconds from request to when alert should be provided.
+ALERT: sets a reminder for the user. TOOL_INPUT=(seconds, text), where seconds is relative time in seconds from request to when alert should be provided. answer with an error message if the user provides an absolute time.
 SEARCH: performs a Google search and returns key results. Use this tool to fetch real-time, up-to-date information about world events. Its data is more reliable than your existing knowledge. TOOL_INPUT=search prompt.
 WEATHER: per-location 3-day weather forecast, at day granularity. It does not provide a finer-grained forecast. TOOL_INPUT=<City, Country>, both in English. TOOL_INPUT should always be a well-defined settlement and country/state. IMPORTANT: If you believe the right value for TOOL_INPUT is unknown/my location/similar, do not ask for the tool to be invoked and instead use the ANSWER format to ask the user for location information.
 
@@ -279,8 +279,7 @@ def get_chat_completion_with_tools(ctx:Context, messenger_name, messages, direct
                 ctx.set_stat('tools-flow:tool-invocations', successful_iterations)
 
                 ctx.log(f"Invoking TOOL {tool} with INPUT {input_}")
-                print("DANNY", messages[0])
-                response, brk = invoke_tool(ctx, tool, input_, message=messages[0])
+                response, brk = invoke_tool(ctx, tool, input_, message=messages[-1])
                 if brk:
                     return Box({
                     "response": response,
@@ -388,7 +387,7 @@ def chat_completion_create_wrap(ctx: Context, model, messages):
 
     assert False
 
-def invoke_tool(ctx:Context, tool, input, parsed_message):
+def invoke_tool(ctx:Context, tool, input, message):
     tool_canon = tool.strip().upper()
 
     if tool_canon.startswith('SEARCH'):
@@ -406,7 +405,8 @@ def invoke_tool(ctx:Context, tool, input, parsed_message):
         return answer, False
     
     if tool_canon.startswith('ALERT'):
-        invoke_alert_tool(ctx, input, parsed_message)
+        ctx.set_stat('tools-flow:tool-alert', 1)
+        invoke_alert_tool(ctx, input, message)
         return "succesfully added the timer", True
         
 
