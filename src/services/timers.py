@@ -9,9 +9,12 @@ utils.load_env()
 import db_models
 from services.messengers import messenger_factory
 
-def create_alert(ctx:Context, messenger_chat_id:str, alert_args:Tuple[int, str], timestamp:int, ref_id:str):
+def invoke_alert_tool(ctx:Context, alert_args:Tuple[int, str], parsed_message):
+    messenger_chat_id=f"{parsed_message.source}:{parsed_message.chatId}"
+    timestamp=int(parsed_message.messageTimestamp)
+    ref_id=parsed_message.messageId
+    
     with db_models.Session() as session:
-       
         now = datetime.datetime.now()
         delta_ts, topic = alert_args
         timer_extra_data = {"topic":topic, "ref_id":ref_id}
@@ -41,19 +44,21 @@ def alert_users():
                 alerts = session.query(db_models.Timer).filter(db_models.Timer.trigger_timestamp <= now).all()
             if alerts:
                 ctx.log(f"[TIMER] found {len(alerts)} alerts")                
-                try:
-                    for alert in alerts:
+                
+                for alert in alerts:
+                    try:
                         topic = alert.data.get("topic", None)
                         quote_id = alert.data.get("ref_id", None)
                         messenger, chat_id = messenger_factory.get_messenger_and_chat_id(alert.chat_id)
+                        ctx.log(f"[TIMER] sending a timer message to chat id {alert.chat_id}")
                         messenger.send_message(ctx, {
                             "chat_id": chat_id, 
                             "kind": "text",
                             "body": f"You asked me to remind you about {topic}" if topic else "You asked me to remind you",
                             "quote_id":quote_id
                         })
-                except:
-                    pass
+                    except:
+                        ctx.log(f"[TIMER] failed to send alert {alert.id} to chat id:{alert.chat_id} ")
                 delete_alerts(ctx, now)                        
             time.sleep(5)
 
