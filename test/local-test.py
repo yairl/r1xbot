@@ -30,6 +30,7 @@ def run():
 
     ctx = create_logging_context(0)
     ctx.user_channel = 'stable'
+    #ctx.user_channel = 'canary'
 
     def dummy_fn(*args, **kwargs):
         return
