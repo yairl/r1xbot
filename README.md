@@ -1,10 +1,12 @@
 # Robot 1-X: your friendly AI assistant
 Robot 1-X bot is your friendly AI assistant, available via WhatsApp and Telegram.
 
-WhatsApp: wa.me/16692001022
-Telegram: t.me/robot1xbot
+WhatsApp: https://wa.me/16692001022
 
-Support: wa.me/16692221028
+Telegram: https://t.me/robot1xbot
+
+
+Support: https://wa.me/16692221028
 
 # What can Robot 1-X do?
 ## WhatsApp and Telegram ##
