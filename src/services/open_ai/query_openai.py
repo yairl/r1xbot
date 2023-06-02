@@ -9,7 +9,7 @@ import traceback
 from typing import Dict
 
 from box import Box
-from services.timers import create_alert
+from services.timers import invoke_alert_tool
 
 
 from services.token_prediction import token_predictor
@@ -218,7 +218,7 @@ prep_reply_message = {"role": "assistant", "content": "Understood. Please provid
 
 import datetime
 
-def get_chat_completion_with_tools(ctx:Context, messenger_name, messages, direct, parsed_message):
+def get_chat_completion_with_tools(ctx:Context, messenger_name, messages, direct):
     try:
         ctx.log("Starting getChatCompletionWithTools.")
 
@@ -280,7 +280,8 @@ def get_chat_completion_with_tools(ctx:Context, messenger_name, messages, direct
                 ctx.set_stat('tools-flow:tool-invocations', successful_iterations)
 
                 ctx.log(f"Invoking TOOL {tool} with INPUT {input_}")
-                response, brk = invoke_tool(ctx, tool, input_, parsed_message=parsed_message)
+                print("DANNY", messages[0])
+                response, brk = invoke_tool(ctx, tool, input_, message=messages[0])
                 if brk:
                     return Box({
                     "response": response,
@@ -410,7 +411,7 @@ def invoke_tool(ctx:Context, tool, input, parsed_message):
         return answer, False
     
     if tool_canon.startswith('ALERT'):
-        create_alert(ctx, messenger_chat_id=f"{parsed_message.source}:{parsed_message.chatId}", alert_args=input, timestamp=int(parsed_message.messageTimestamp), ref_id=parsed_message.messageId)
+        invoke_alert_tool(ctx, input, parsed_message)
         return "succesfully added the timer", True
         
 
