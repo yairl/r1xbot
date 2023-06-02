@@ -1,15 +1,20 @@
-# r1xbot
-Robot 1X bot for Telegram and WhatsApp.
+# Robot 1-X: your friendly AI assistant
+Robot 1-X bot is your friendly AI assistant, available via WhatsApp and Telegram.
 
-# Description
-Able to attend private chats, as well as group chats.
+WhatsApp: wa.me/16692001022
+Telegram: t.me/robot1xbot
 
-Private chats: replies to every message.
-Group chats: replies only if mentioned at beginning of message, or if replying to an earlier response.
+Support: wa.me/16692221028
 
-# Basic viewer requirements
-sudo apt-get update
-sudo apt-get install build-essential libgtk-3-dev libjpeg-dev libtiff5-dev libgstreamer-plugins-base1.0-dev libnotify-dev freeglut3-dev libsdl2-dev libwebkit2gtk-4.0-dev
+# What can Robot 1-X do?
+## WhatsApp and Telegram ##
+- Answer questions and have a discussion, using GPT-3.5 or GPT-4
+- Write stories, plan trips, and tutor
+- Tools: search Google
+- Voice: answer recorded messages
+- Transcription: forward a voice message to Robot 1-X, and he will send you back the transcription
 
-pip3 install wxPythonpip3 install wxPython psycopg2 dotenv
-
+## Telegram only ##
+- Attend group chats!
+  - Transcribes EVERY voice message, so you can read instead of listening
+  - Responds only when @mention-d as beginning of message
