@@ -20,3 +20,8 @@ Support: https://wa.me/16692221028
 - Attend group chats!
   - Transcribes EVERY voice message, so you can read instead of listening
   - Responds only when @mention-d as beginning of message
+
+## Initial setup
+
+Read SETUP.md.
+
