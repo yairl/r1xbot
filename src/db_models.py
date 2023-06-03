@@ -21,7 +21,7 @@ class Message(Base):
         Index('index_on_messages_created_at_chat_id', 'createdAt', 'chatId')
     )
 
-    id = Column(Integer, primary_key=True, server_default=text("""nextval('"Messages_id_seq"'::regclass)"""))
+    id = Column(Integer, primary_key=True)
     source = Column(String(255))
     messageTimestamp = Column(DateTime(True))
     chatType = Column(String(255))
@@ -46,7 +46,7 @@ class SequelizeMeta(Base):
 class UserSettings(Base):
     __tablename__ = 'user_settings'
 
-    id = Column(Integer, primary_key=True, server_default=text("nextval('user_settings_id_seq'::regclass)"))
+    id = Column(Integer, primary_key=True)
     user_id = Column(String(255), nullable=False, index=True)
     settings = Column(JSONB, nullable=False)
     version = Column(Integer, nullable=False)
@@ -71,7 +71,7 @@ class Event(Base):
 class Timer(Base):
     __tablename__ = 'timers'
 
-    id = Column(Integer, primary_key=True, server_default=text("nextval('timer_id_seq'::regclass)"))
+    id = Column(Integer, primary_key=True)
     chat_id = Column(String, index=True)
     trigger_timestamp = Column(DateTime, index=True)
     data = Column(JSONB)
