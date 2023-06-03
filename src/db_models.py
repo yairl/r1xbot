@@ -82,7 +82,7 @@ class Event(Base):
 class Timer(Base):
     __tablename__ = 'timers'
 
-    id = Column(Integer, primary_key=True, server_default=text("nextval('timer_id_seq'::regclass)"))
+    id = Column(Integer, primary_key=True)
     chat_id = Column(String, index=True)
     trigger_timestamp = Column(DateTime, index=True)
     data = Column(DialectAdapter)

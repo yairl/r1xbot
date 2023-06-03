@@ -168,13 +168,12 @@ Example:
 When providing a final answer, use this exact format, and do not deviate.
 IMPORTANT: ALWAYS wrap your final answer with <yair1xigoresponse> tags, and in JSON format.
 
-Today's full date time is {current_date}.
+Today's date is {current_date}.
 For up-to-date information about people, stocks and world events, ALWAYS use one of the tools available to you and DO NOT provide an answer.
 For fiction requests, use your knowledge and creativity to answer.
 If human request has no context of time, assume he is referring to current time period.
 All tools provided have real-time access to the internet; do not reply that you have no access to the internet, unless you have attempted to invoke the SEARCH tool first. Additionally, do not invoke a tool if the required TOOL_INPUT is unknown, vague, or not provided. Always follow the IMPORTANT note in the tool description.
 If you have missing data and ONLY if you cannot use the tools provided to fetch it, try to estimate; in these cases, let the user know your answer is an estimate.
-You are able to set reminders and when you are asked to do it you will invoke the ALERT tool.
 
 Don't provide your response until you made sure it is valid, and meets all prerequisites laid out for tool invocation.
 
@@ -412,7 +411,7 @@ def invoke_tool(ctx:Context, tool, input, message):
     if tool_canon.startswith('ALERT'):
         ctx.set_stat('tools-flow:tool-alert', 1)
         invoke_alert_tool(ctx, input, message)
-        return "succesfully added the timer", True
+        return "alert added successfully.", True
         
 
     return None, False

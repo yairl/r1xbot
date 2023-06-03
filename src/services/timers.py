@@ -10,9 +10,9 @@ import db_models
 from services.messengers import messenger_factory
 
 def invoke_alert_tool(ctx:Context, alert_args:Tuple[int, str], parsed_message):
-    messenger_chat_id=f"{parsed_message.source}:{parsed_message.chatId}"
-    timestamp=int(parsed_message.messageTimestamp.timestamp())
-    ref_id=parsed_message.messageId
+    messenger_chat_id = f"{parsed_message.source}:{parsed_message.chatId}"
+    timestamp = int(parsed_message.messageTimestamp.timestamp())
+    ref_id = parsed_message.messageId
     
     with db_models.Session() as session:
         now = datetime.datetime.now()
