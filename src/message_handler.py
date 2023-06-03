@@ -18,14 +18,23 @@ from services.message_db import insert_message, get_message_history
 import services.messengers as messengers
 from infra.context import Context
 
-posthog_client = Posthog(
-    os.environ['POSTHOG_API_KEY'],
-    host='https://app.posthog.com'
-)
+posthog_client = None
+if os.environ.get('POSTHOG_API_KEY', '') != '':
+    posthog_client = Posthog(
+        os.environ['POSTHOG_API_KEY'],
+        host='https://app.posthog.com'
+    )
+
+def posthog_capture(distinct_id, event, properties):
+    if posthog_client == None:
+        return
+
+    posthog_client.capture(distinct_id=distinct_id, event=event, properties=properties)
 
 def get_user_settings(parsed_message) -> Dict[str, Any]: 
     user_id = f"{parsed_message.source}:{parsed_message.chatId}"
     session = db_models.Session()
+
     settings = session.query(db_models.UserSettings) \
                 .filter(db_models.UserSettings.user_id == user_id) \
                 .order_by(desc(db_models.UserSettings.createdAt)) \
@@ -53,14 +62,14 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
     start = time.time()
     parsed_event = json.loads(event)
     messenger = messenger_factory.messenger_by_type[parsed_event["source"]]
-
+    
     parse_message_result = messenger.parse_message(parsed_event["event"])
-
+    
     if parse_message_result is None:
         return
 
     parsed_message, file_info = parse_message_result
-    
+
     messenger.set_status_read(ctx, parsed_message.messageId)
 
     ctx.user_settings = get_user_settings(parsed_message)
@@ -126,7 +135,7 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
 
     ph_props.update(ctx.stats)
 
-    posthog_client.capture(
+    posthog_capture(
         distinct_id = f'{parsed_message.source}:{parsed_message.chatId}',
         event = 'reply-sent',
         properties = ph_props
@@ -159,7 +168,7 @@ def handle_audio_message(ctx, messenger, parsed_message, file_info, in_flight):
         # Use messenger.send_message directly, so transcribed reply is not stored in DB
         messenger.send_message(ctx, send_attrs)
 
-    posthog_client.capture(
+    posthog_capture(
         distinct_id = f"{parsed_message.source}:{parsed_message.chatId}",
         event = "message-transcribed",
         properties = {
