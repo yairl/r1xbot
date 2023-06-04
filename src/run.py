@@ -5,9 +5,8 @@ import os
 import boto3
 from services.timers import alert_users
 
-from infra import logger, utils 
+from infra import logger
 from infra.context import Context
-utils.load_env()
 
 import message_handler
 
