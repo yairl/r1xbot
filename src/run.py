@@ -3,10 +3,10 @@
 import os
 
 import boto3
+from services.timers import alert_users
 
-from infra import logger, utils 
+from infra import logger
 from infra.context import Context
-utils.load_env()
 
 import message_handler
 
@@ -47,12 +47,17 @@ def main():
     threads = []
 
     logger.logger.info(f'Listening on {NUM_CONSUMERS} queues...')
-
+   
     for i in range(NUM_CONSUMERS):
         queue = boto3.client('sqs', region_name='eu-central-1')
         thread = threading.Thread(target=single_sqs_handler, args=(queue,))
         thread.start()
         threads.append(thread)
+    
+     
+    timer_thread = threading.Thread(target=alert_users)
+    timer_thread.start()
+    threads.append(timer_thread)
 
     for thread in threads:
         thread.join()
