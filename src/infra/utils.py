@@ -1,5 +1,6 @@
 import os
 import requests
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from pydub import AudioSegment
@@ -39,7 +40,19 @@ def load_env():
 
     load_dotenv(f"./.env.{stage}")
 
+
     # If no database is provided, resort to a locally-hosted SQLite version.
     # Typically used for testing.
-    if os.environ['DB_CONNECTION_STRING'] == '':
+    if os.environ.get('DB_CONNECTION_STRING', '') == '':
         os.environ['DB_CONNECTION_STRING'] = 'sqlite:///file::memory:?cache=shared'
+
+    local_dev_required_envs = ['OPENAI_API_KEY', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_BOT_NAME', 'SERPER_API_KEY']
+    all_required_envs = local_dev_required_envs + ['AZURE_OPENAI_KEY', 'FACEBOOK_GRAPH_VERSION', 'WHATSAPP_BOT_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_PHONE_NUMBER', 'DB_CONNECTION_STRING', 'SQS_QUEUE_URL', 'DREAMSTUDIO_API_KEY', 'POSTHOG_API_KEY']
+
+    required_envs = local_dev_required_envs if stage == 'dev-local' else all_required_envs
+
+    # Ensure all reuqired environment variables are set up
+    for v in required_envs:
+        if os.environ.get(v, "") == "":
+            print(f"Environment variable {v} is undefined or an empty string. Pleas configure it via you .env.{stage} file.")
+            sys.exit(1)

@@ -61,6 +61,7 @@ def handle_incoming_message(ctx: Context, event):
 def handle_incoming_message_core(ctx:Context, event, in_flight):
     start = time.time()
     parsed_event = json.loads(event)
+    ctx.log(parsed_event)
     messenger = messenger_factory.messenger_by_type[parsed_event["source"]]
     
     parse_message_result = messenger.parse_message(parsed_event["event"])

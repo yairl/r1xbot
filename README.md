@@ -23,5 +23,12 @@ Support: https://wa.me/16692221028
 
 ## Initial setup
 
-Read SETUP.md.
+Follow the instructions in SETUP.md.
 
+## Local run
+
+After executing all instructions in SETUP.md, you can launch Robot 1-X with your private Telegram bot by typing:
+
+```env R1X_STAGE=dev-local ./src/run.py```
+
+Messages are stored locally.
