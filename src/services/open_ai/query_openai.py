@@ -459,7 +459,7 @@ def create_transcription(ctx:Context, mp3_file_path):
 
     transcript = openai.Audio.transcribe(
         file = open(mp3_file_path, "rb"),
-        model = os.environ['OPENAI_SPEECH_TO_TEXT_MODEL'],
+        model = OPENAI_SPEECH_TO_TEXT_MODEL,
         language = language
     )
 

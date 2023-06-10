@@ -70,7 +70,8 @@ def launch_local_telegram_listener():
     application = Application.builder().token(os.environ['TELEGRAM_BOT_TOKEN']).build()
 
     # on non command i.e message - echo the message on Telegram
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_local_incoming_telegram_message))
+    tg_filters = (filters.AUDIO | filters.TEXT | filters.VOICE) & ~filters.COMMAND
+    application.add_handler(MessageHandler(tg_filters, handle_local_incoming_telegram_message))
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling()
