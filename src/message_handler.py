@@ -62,8 +62,9 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
     start = time.time()
     parsed_event = json.loads(event)
     ctx.log(parsed_event)
-    messenger = messenger_factory.messenger_by_type[parsed_event["source"]]
-    
+    chat_id = str(parsed_event["event"]['message']['chat']['id'])
+    messenger = messenger_factory.messenger_by_type[parsed_event["source"]](chat_id)
+
     parse_message_result = messenger.parse_message(parsed_event["event"])
     
     if parse_message_result is None:
@@ -94,7 +95,7 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
         return
 
     if not is_typing:
-        messenger.set_typing(parsed_message.chatId, in_flight)
+        messenger.set_typing(in_flight)
         is_typing = True
 
     message_history = get_message_history(ctx, message)
@@ -143,7 +144,7 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
     )
 
 def handle_audio_message(ctx, messenger, parsed_message, file_info, in_flight):
-    messenger.set_typing(parsed_message.chatId, in_flight)
+    messenger.set_typing(in_flight)
 
     transcript = get_transcript(ctx, messenger, parsed_message, file_info)
     text = "\N{SPEAKING HEAD IN SILHOUETTE}\N{MEMO}: " + transcript

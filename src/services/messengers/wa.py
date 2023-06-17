@@ -36,8 +36,7 @@ class WhatsappMessenger(MessagingService):
 
         kind = self._get_message_kind(message0)
         message_timestamp = float(message0['timestamp'])
-        sender_id = message0['from']
-        chat_id = sender_id
+        sender_id = self.chat_id
         chat_type = "private"
         is_sent_by_me = sender_id == os.environ['WHATSAPP_PHONE_NUMBER']
         is_forwarded = (message0.get('context', {}).get('forwarded', None) != None)
@@ -60,7 +59,7 @@ class WhatsappMessenger(MessagingService):
             "source": source,
             "messageTimestamp": message_timestamp,
             "chatType": chat_type,
-            "chatId": chat_id,
+            "chatId": self.chat_id,
             "senderId": sender_id,
             "isSentByMe": is_sent_by_me,
             "isForwarded" : is_forwarded,
@@ -75,7 +74,6 @@ class WhatsappMessenger(MessagingService):
         })]
 
     def _get_bot_generated_message(self, ctx:Context, send_message_response, attributes):
-        chat_id = attributes.get('chat_id')
         quote_id = attributes.get('quote_id')
         kind = attributes.get('kind')
         body = attributes.get('body')
@@ -107,7 +105,6 @@ class WhatsappMessenger(MessagingService):
         return message
 
     def send_message(self, ctx:Context, attributes):
-        chat_id = attributes.get('chat_id')
         quote_id = attributes.get('quote_id')
         kind = attributes.get('kind')
         body = attributes.get('body')
@@ -127,7 +124,7 @@ class WhatsappMessenger(MessagingService):
         args = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
-            "to": chat_id,
+            "to": self.chat_id,
             "type": "text",
             "text": {
                 "preview_url": False,
@@ -145,7 +142,7 @@ class WhatsappMessenger(MessagingService):
 
         message = self._get_bot_generated_message(ctx, response.json(), attributes)
         parsed_message, _ = self.parse_message(message)
-        parsed_message.chatId = chat_id
+        parsed_message.chatId = self.chat_id
 
         return parsed_message
 
@@ -162,7 +159,7 @@ class WhatsappMessenger(MessagingService):
             raise error
         return response
     
-    def send_contact(self, ctx: Context, chat_id:str, name:str, handle:str):
+    def send_contact(self, ctx: Context, name:str, handle:str):
         headers = {
             "Authorization": f"Bearer {os.environ['WHATSAPP_BOT_TOKEN']}",
             "Content-Type": "application/json"
@@ -170,7 +167,7 @@ class WhatsappMessenger(MessagingService):
         contact_args = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
-            "to": chat_id,
+            "to": self.chat_id,
             "type": "contacts",
             "contacts": [
                 {
@@ -246,7 +243,7 @@ class WhatsappMessenger(MessagingService):
         return orig_file_path, mp3_file_path
 
 
-    def set_typing(self, chat_id, in_flight):
+    def set_typing(self, in_flight):
         # TODO: igors - can't find WA API for typing indication.
         pass
 
