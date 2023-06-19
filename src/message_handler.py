@@ -62,14 +62,12 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
     start = time.time()
     parsed_event = json.loads(event)
     ctx.log(parsed_event)
-    chat_id = str(parsed_event["event"]['message']['chat']['id'])
-    messenger = messenger_factory.messenger_by_type[parsed_event["source"]](chat_id)
+    messenger = messenger_factory.make_messenger_from_event(parsed_event)
 
-    parse_message_result = messenger.parse_message(parsed_event["event"])
-    
-    if parse_message_result is None:
+    if messenger is None:
         return
 
+    parse_message_result = messenger.parse_message(parsed_event["event"])
     parsed_message, file_info = parse_message_result
 
     messenger.set_status_read(ctx, parsed_message.messageId)
