@@ -8,21 +8,20 @@ from typing import Dict, List
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from infra import utils 
 from infra.context import Context
-from services.messengers.messenger_factory import get_messenger_and_chat_id
+from services.messengers.messenger_factory import make_messenger
 
 utils.load_env()
 
 
 def multi_send(ctx:Context, full_chat_ids: List[str], attrs: Dict[str,str]):
     for full_chat_id in full_chat_ids:
-        messenger, chat_id = get_messenger_and_chat_id(full_chat_id)
-        attrs['chat_id'] = chat_id
+        messenger = make_messenger(full_chat_id)
         response = messenger.send_message(ctx, attrs)
         print(response)
 
         should_send_contact = attrs['contact_name'] and attrs['contact_handle']
         if should_send_contact:
-            response = messenger.send_contact(ctx, chat_id, attrs['contact_name'], attrs['contact_handle'])
+            response = messenger.send_contact(ctx, attrs['contact_name'], attrs['contact_handle'])
             print(response)
 
 if __name__ == '__main__':

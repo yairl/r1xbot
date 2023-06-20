@@ -30,7 +30,7 @@ class TelegramMessenger(MessagingService):
         source = "tg"
         message_timestamp = message['date']
         chat_type = message['chat']['type']
-        chat_id = str(message['chat']['id'])
+
         sender_id = str(message['from']['id'])
         is_sent_by_me = message['from']['id'] == int(TELEGRAM_SENDER_ID)
         is_forwarded = message.get('forward_from', None) != None
@@ -46,7 +46,7 @@ class TelegramMessenger(MessagingService):
                 'source': source,
                 'messageTimestamp': message_timestamp,
                 'chatType': chat_type,
-                'chatId': chat_id,
+                'chatId': self.chat_id,
                 'senderId': sender_id,
                 'isSentByMe': is_sent_by_me,
                 'isForwarded': is_forwarded,
@@ -62,8 +62,7 @@ class TelegramMessenger(MessagingService):
             })
         )
 
-    def send_message(self, ctx:Context, attributes):
-        chat_id = attributes.get('chat_id')
+    def send_message(self, ctx:Context, attributes): 
         quote_id = attributes.get('quote_id')
         kind = attributes.get('kind')
         body = attributes.get('body')
@@ -71,7 +70,7 @@ class TelegramMessenger(MessagingService):
         if kind != "text":
             return
 
-        args = {'chat_id': chat_id, 'text': body}
+        args = {'chat_id': self.chat_id, 'text': body}
         if quote_id:
             args['reply_to_message_id'] = quote_id
             args['allow_sending_without_reply'] = True
@@ -89,8 +88,8 @@ class TelegramMessenger(MessagingService):
 
         return parsed_message
     
-    def send_contact(self, ctx: Context, chat_id:str, name:str, handle:str):
-        args = {'chat_id': chat_id, 'text': f'https://t.me/{handle}'}
+    def send_contact(self, ctx: Context, name:str, handle:str):
+        args = {'chat_id': self.chat_id, 'text': f'https://t.me/{handle}'}
         response = requests.post(
             f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendMessage',
             json=args
@@ -148,20 +147,20 @@ class TelegramMessenger(MessagingService):
 
         return orig_file_path, mp3_file_path
 
-    def set_typing(self, chat_id, in_flight):
+    def set_typing(self, in_flight):
         if not in_flight["working"]:
             return
 
         requests.post(
             f"https://api.telegram.org/bot{os.environ['TELEGRAM_BOT_TOKEN']}/sendChatAction",
-            json={"chat_id": chat_id, "action": "typing"},
+            json={"chat_id": self.chat_id, "action": "typing"},
         )
 
         base_timeout = 6
         extra_timeout = random.randint(0, 1500)
         timeout = base_timeout + (extra_timeout / 1000)
 
-        timer = threading.Timer(timeout, self.set_typing, args=(chat_id, in_flight))
+        timer = threading.Timer(timeout, self.set_typing, args=(in_flight,))
         timer.start()
     
     def set_status_read(self, ctx: Context, message_id) -> None:

@@ -11,7 +11,12 @@ class MessageKindE:
     VOICE = 'voice'
     AUDIO = 'audio'
 
+
 class MessagingService(ABC):
+    def __init__(self, chat_id: str):
+        super().__init__()
+        self.chat_id = chat_id
+
     @abstractmethod
     def parse_message(self, message) -> Tuple[Box, Box]:
         pass
@@ -21,7 +26,7 @@ class MessagingService(ABC):
         pass
     
     @abstractmethod
-    def send_contact(self, ctx:Context, chat_id:str, name:str, handle:str):
+    def send_contact(self, ctx:Context, name:str, handle:str):
         pass
     
     @abstractmethod
@@ -29,7 +34,7 @@ class MessagingService(ABC):
         pass
 
     @abstractmethod
-    def set_typing(self, chat_id, in_flight) ->None:
+    def set_typing(self, in_flight) ->None:
         pass
 
     @abstractmethod

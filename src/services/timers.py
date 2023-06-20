@@ -49,10 +49,9 @@ def alert_users():
                     try:
                         topic = alert.data.get("topic", None)
                         quote_id = alert.data.get("ref_id", None)
-                        messenger, chat_id = messenger_factory.get_messenger_and_chat_id(alert.chat_id)
+                        messenger = messenger_factory.make_messenger(alert.chat_id)
                         ctx.log(f"[TIMER] sending a timer message to chat id {alert.chat_id}")
-                        messenger.send_message(ctx, {
-                            "chat_id": chat_id, 
+                        messenger.send_message(ctx, { 
                             "kind": "text",
                             "body": f"You asked me to remind you about {topic}" if topic else "You asked me to remind you",
                             "quote_id":quote_id
