@@ -36,7 +36,7 @@ class WhatsappMessenger(MessagingService):
 
         kind = self._get_message_kind(message0)
         message_timestamp = float(message0['timestamp'])
-        sender_id = self.chat_id
+        sender_id = message0['from']
         chat_type = "private"
         is_sent_by_me = sender_id == os.environ['WHATSAPP_PHONE_NUMBER']
         is_forwarded = (message0.get('context', {}).get('forwarded', None) != None)
