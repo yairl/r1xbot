@@ -18,6 +18,8 @@ from services.message_db import insert_message, get_message_history
 import services.messengers as messengers
 from infra.context import Context
 
+R1X_ALLOW_UNVETTED_NEW_USERS = False
+
 posthog_client = None
 if os.environ.get('POSTHOG_API_KEY', '') != '':
     posthog_client = Posthog(
@@ -100,9 +102,17 @@ def handle_incoming_message_core(ctx:Context, event, in_flight):
     ctx.log("message history pulled.")
 
     if len(message_history) <= 1:
-        ctx.log("sending intro message.")
-        send_intro_message(ctx, messenger, parsed_message)
-        return
+        if R1X_ALLOW_UNVETTED_NEW_USERS:
+            ctx.log("sending intro message.")
+            send_intro_message(ctx, messenger, parsed_message)
+            return
+        else:
+            messenger.send_message(ctx, {
+                "chat_id": parsed_message["chatId"],
+                "kind": "text",
+                "body": "Robot 1-X no longer accepts new users. If you require access, please send a WhatsApp message to +16692221028."
+            })
+            return
 
     ctx.log("calling get_chat_completion...")
     messenger_name = "WhatsApp" if parsed_event["source"] == "wa" else "Telegram"
